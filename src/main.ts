@@ -73,6 +73,15 @@ async function bootstrap() {
         await cliService.verifyAccount(username, token);
       });
 
+    program
+      .command('guide')
+      .description(
+        'Show GitSwitch workflow guide'
+      )
+      .action(async () => {
+        await cliService.showGuide();
+      });
+
 
     // 👇 DEFAULT COMMAND MUST BE LAST
     program

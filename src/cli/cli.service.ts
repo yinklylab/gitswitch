@@ -302,6 +302,10 @@ export class CliService {
         name: chalk.cyan.bold('👤 Current Account') + chalk.dim(' - Show active GitSwitch profile.'),
         value: 'current'
       },
+      {
+        name: chalk.cyan.bold('🚀 Workflow Guide') + chalk.dim(' - Learn how to use GitSwitch.'),
+        value: 'guide',
+      },
     ];
 
     const { command } = await inquirer.prompt([
@@ -344,6 +348,9 @@ export class CliService {
         break;
       case 'current':
         await this.currentAccount();
+        break;
+      case 'guide':
+        await this.showGuide();
         break;
       case 'verify':
         const { username, token } = await inquirer.prompt([
@@ -442,5 +449,114 @@ export class CliService {
 
 
     console.log();
+  }
+
+  async showGuide() {
+    console.log(
+      chalk.cyan.bold(
+        '\n🚀 ===GitSwitch Workflow Guide===\n'
+      )
+    );
+
+    console.log(
+      chalk.green.bold(
+        '1️⃣  Setup a GitHub account'
+      )
+    );
+
+    console.log(
+      chalk.white(
+        'Configure your GitHub identity, SSH key and authentication.'
+      )
+    );
+
+    console.log(
+      chalk.cyan(
+        'gitswitch setup\n'
+      )
+    );
+
+
+    console.log(
+      chalk.green.bold(
+        '2️⃣  Clone a repository with an account'
+      )
+    );
+
+    console.log(
+      chalk.white(
+        'Clone repositories using a configured GitSwitch profile.'
+      )
+    );
+
+    console.log(
+      chalk.cyan(
+        'gitswitch clone work git@github.com:user/project.git\n'
+      )
+    );
+
+
+    console.log(
+      chalk.green.bold(
+        '3️⃣  Switch an existing repository remote'
+      )
+    );
+
+    console.log(
+      chalk.white(
+        'Move an existing repo from one GitHub identity to another.'
+      )
+    );
+
+    console.log(
+      chalk.cyan(
+        'gitswitch remote work\n'
+      )
+    );
+
+
+    console.log(
+      chalk.green.bold(
+        '4️⃣  Push using a specific account'
+      )
+    );
+
+    console.log(
+      chalk.white(
+        'Push code with your selected GitHub identity.'
+      )
+    );
+
+    console.log(
+      chalk.cyan(
+        'gitswitch push work\n'
+      )
+    );
+
+
+    console.log(
+      chalk.green.bold(
+        '5️⃣  Check current identity'
+      )
+    );
+
+    console.log(
+      chalk.cyan(
+        'gitswitch current\n'
+      )
+    );
+
+
+    console.log(
+      chalk.magenta.bold(
+        '✨ Tip'
+      )
+    );
+
+    console.log(
+      chalk.gray(
+        'Run `gitswitch list` anytime to view your configured accounts.\n'
+      )
+    );
   }
 }
