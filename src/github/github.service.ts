@@ -24,7 +24,11 @@ export class GithubService {
       console.log(chalk.yellow("⚠️ No GitHub token provided. Checking if username exists..."));
       try {
         const response = await axios.get(`${this.baseUrl}/${username}`, {
-          headers: { "User-Agent": "GitSwitch" },
+          headers: {
+            "User-Agent": "GitSwitch",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+          }
         });
 
         const { login } = response.data || {};
@@ -36,20 +40,86 @@ export class GithubService {
         console.log(chalk.red(`❌ GitHub account '${username}' not found.`));
         return { valid: false, reason: "api_error", hasToken: false };
       } catch (error) {
+
         if (axios.isAxiosError(error)) {
+
           if (error.response?.status === 404) {
-            console.error(chalk.red(`❌ GitHub account '${username}' not found.`));
-            return { valid: false, reason: 'not_found', hasToken: false };
+
+            console.error(
+              chalk.red(
+                `❌ GitHub account '${username}' not found.`
+              )
+            );
+
+            return {
+              valid: false,
+              reason: 'not_found',
+              hasToken: false,
+            };
           }
 
-          if (error.code === 'ENOTFOUND') {
-            console.error(chalk.red('❌ Verification failed! Please check your internet connection'));
-            return { valid: false, reason: 'ENOTFOUND', hasToken: false };
+
+          if (error.response?.status === 403) {
+
+            console.log(
+              chalk.yellow(
+                '⚠️ GitHub API rate limit reached.'
+              )
+            );
+
+
+            console.log(
+              chalk.yellow(
+                'Skipping online verification. Continuing setup...'
+              )
+            );
+
+
+            return {
+              valid: true,
+              reason: 'rate_limit',
+              hasToken: false,
+            };
           }
+
+
+          if (error.code === 'ENOTFOUND') {
+
+            console.error(
+              chalk.red(
+                '❌ Verification failed! Please check your internet connection'
+              )
+            );
+
+
+            return {
+              valid: false,
+              reason: 'ENOTFOUND',
+              hasToken: false,
+            };
+          }
+
         }
-        const errorMessage = (error as Error)?.message || String(error);
-        console.error(chalk.red(`⚠️ Error verifying GitHub account:`), errorMessage);
-        return { valid: false, reason: "network_error", hasToken: false };
+
+
+        const errorMessage =
+          (error as Error)?.message ||
+          String(error);
+
+
+        console.error(
+          chalk.red(
+            `⚠️ Error verifying GitHub account:`
+          ),
+          errorMessage
+        );
+
+
+        return {
+          valid: false,
+          reason: 'network_error',
+          hasToken: false,
+        };
       }
     }
 
@@ -58,6 +128,8 @@ export class GithubService {
         headers: {
           Authorization: `token ${token}`,
           "User-Agent": "GitSwitch",
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28"
         },
       });
 
@@ -189,7 +261,12 @@ export class GithubService {
   async keyExistsOnGithub(username: string, publicKey: string, token: string): Promise<boolean> {
     try {
       const response = await axios.get(`${this.baseUrl}/user/keys`, {
-        headers: { Authorization: `token ${token}` },
+        headers: {
+          Authorization: `token ${token}`,
+          "User-Agent": "GitSwitch",
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28"
+        },
       });
 
       const keys = response.data as { key: string }[];

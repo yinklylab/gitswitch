@@ -5,9 +5,10 @@ import { GithubModule } from './github/github.module';
 import { SshModule } from './ssh/ssh.module';
 import { CliModule } from './cli/cli.module';
 import { GitModule } from './git/git.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
-  imports: [TokenModule, GithubModule, SshModule, CliModule, GitModule],
+  imports: [TokenModule, GithubModule, SshModule, CliModule, GitModule, AccountModule],
   providers: [AppService],
 })
 export class AppModule {}

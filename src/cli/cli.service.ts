@@ -7,6 +7,7 @@ import { SshService } from '../ssh/ssh.service';
 import { GithubService } from '../github/github.service';
 import { TokenService } from '../token/token.service';
 import { GitService } from '../git/git.service';
+import { AccountService } from '../account/account.service';
 
 
 @Injectable()
@@ -16,6 +17,7 @@ export class CliService {
     private readonly githubService: GithubService,
     private readonly tokenService: TokenService,
     private readonly gitService: GitService,
+    private readonly accountService: AccountService,
   ) { }
 
   async runSetup() {
@@ -107,6 +109,15 @@ export class CliService {
     const keyPath = await this.sshService.generateKey(email, accountName);
     await this.sshService.updateSshConfig(accountName, keyPath, hostAlias);
     await this.githubService.setupGitConfig(accountName, email);
+
+    await this.accountService.saveAccount({
+      name: accountName,
+      email,
+      hostAlias,
+      sshKey: keyPath,
+      createdAt: new Date()
+        .toISOString()
+    });
 
     const publicKeyPath = `${keyPath}.pub`;
     let publicKey = '';
@@ -253,6 +264,7 @@ export class CliService {
       const isConfigDeleted = await this.githubService.deleteAccountConfig(_accountToDelete as string);
       const isSSHDeleted = await this.sshService.deleteSSHKeys(_accountToDelete as string);
       await this.sshService.removeFromSshConfig(_accountToDelete as string);
+      await this.accountService.deleteAccount(_accountToDelete as string);
 
       if (isConfigDeleted && isSSHDeleted) {
         console.log(chalk.green(`\n✅ Successfully removed account '${_accountToDelete}'.\n`));
