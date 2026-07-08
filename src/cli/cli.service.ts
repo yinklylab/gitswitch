@@ -311,16 +311,20 @@ export class CliService {
         value: 'verify'
       },
       {
-        name: chalk.cyan.bold('👤 Current Account') + chalk.dim(' - Show active GitSwitch profile.'),
+        name: chalk.cyan.bold('👤  Current Account') + chalk.dim(' - Show active GitSwitch profile.'),
         value: 'current'
       },
       {
-        name: chalk.cyan.bold('🚀 Workflow Guide') + chalk.dim(' - Learn how to use GitSwitch.'),
+        name: chalk.cyan.bold('🚀  Workflow Guide') + chalk.dim(' - Learn how to use GitSwitch.'),
         value: 'guide',
       },
       {
-        name: chalk.blue.bold('🔗 Switch Remote') + chalk.dim(' - Change repository GitHub identity.'),
+        name: chalk.blue.bold('🔗  Switch Remote') + chalk.dim(' - Change repository GitHub identity.'),
         value: 'remote',
+      },
+      {
+        name: chalk.green.bold('🚀  Push Code') + chalk.dim(' - Push using a GitSwitch account.'),
+        value: 'push',
       },
     ];
 
@@ -370,14 +374,25 @@ export class CliService {
         break;
       case 'remote':
         const { remoteAccount } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'remoteAccount',
+            message:
+              'Account name:',
+          }
+        ]);
+        await this.switchRemote(remoteAccount);
+        break;
+      case 'push':
+        const { pushAccount } = await inquirer.prompt([
             {
               type: 'input',
-              name: 'remoteAccount',
+              name: 'pushAccount',
               message:
                 'Account name:',
             }
           ]);
-        await this.switchRemote(remoteAccount);
+        await this.pushWithAccount(pushAccount);
         break;
       case 'verify':
         const { username, token } = await inquirer.prompt([
@@ -682,6 +697,155 @@ export class CliService {
     console.log(
       chalk.gray(
         newRemote
+      )
+    );
+  }
+
+  async pushWithAccount(accountName: string) {
+
+    console.log(
+      chalk.cyan(
+        `\n🚀 Preparing push with '${accountName}'...\n`
+      )
+    );
+
+
+    const account =
+      await this.accountService.getAccount(
+        accountName
+      );
+
+
+    if (!account) {
+
+      console.log(
+        chalk.red(
+          `❌ Account '${accountName}' does not exist.`
+        )
+      );
+
+
+      console.log(
+        chalk.gray(
+          'Run: gitswitch setup'
+        )
+      );
+
+
+      return;
+    }
+
+
+    const isRepo =
+      await this.gitService.isGitRepository();
+
+
+    if (!isRepo) {
+
+      console.log(
+        chalk.red(
+          '❌ Current directory is not a Git repository.'
+        )
+      );
+
+
+      return;
+    }
+
+
+    // Magic part 🔥
+    // Automatically switch origin URL
+    await this.switchRemote(
+      accountName
+    );
+
+
+    const currentBranch =
+      await this.gitService.getCurrentBranch();
+
+
+    if (!currentBranch) {
+
+      console.log(
+        chalk.red(
+          '❌ Unable to detect current branch.'
+        )
+      );
+
+
+      return;
+    }
+
+
+    console.log(
+      chalk.green(
+        `Current branch detected: ${currentBranch}`
+      )
+    );
+
+
+
+    const {
+      pushTarget
+    } =
+      await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'pushTarget',
+          message: 'Where do you want to push?',
+          choices: [
+            {
+              name: `Current branch (${currentBranch})`,
+              value: 'current'
+            },
+            {
+              name: 'Different branch',
+              value: 'different'
+            }
+          ]
+        }
+      ]);
+
+
+
+    let branch =
+      currentBranch;
+
+
+    if (
+      pushTarget === 'different'
+    ) {
+
+
+      const response =
+        await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'branch',
+            message: 'Enter branch name:',
+            validate: (input: string) =>
+              input.trim()
+                ? true
+                : 'Branch name required'
+          }
+        ]);
+
+
+      branch =
+        response.branch;
+
+    }
+
+
+
+    await this.gitService.push(
+      branch
+    );
+
+
+    console.log(
+      chalk.greenBright(
+        `\n🎉 Successfully pushed '${branch}' using '${accountName}'\n`
       )
     );
   }
