@@ -6,6 +6,7 @@ import figlet from 'figlet';
 import { SshService } from '../ssh/ssh.service';
 import { GithubService } from '../github/github.service';
 import { TokenService } from '../token/token.service';
+import { GitService } from '../git/git.service';
 
 
 @Injectable()
@@ -14,6 +15,7 @@ export class CliService {
     private readonly sshService: SshService,
     private readonly githubService: GithubService,
     private readonly tokenService: TokenService,
+    private readonly gitService: GitService,
   ) { }
 
   async runSetup() {
@@ -296,6 +298,10 @@ export class CliService {
         name: chalk.yellow.bold('✔️  Verify Account') + chalk.dim(' - Check if a username or token is valid on GitHub.'),
         value: 'verify'
       },
+      {
+        name: chalk.cyan.bold('👤 Current Account') + chalk.dim(' - Show active GitSwitch profile.'),
+        value: 'current'
+      },
     ];
 
     const { command } = await inquirer.prompt([
@@ -336,6 +342,9 @@ export class CliService {
         ]);
         await this.deleteAccount(accountToDelete);
         break;
+      case 'current':
+        await this.currentAccount();
+        break;
       case 'verify':
         const { username, token } = await inquirer.prompt([
           {
@@ -355,5 +364,83 @@ export class CliService {
       default:
         console.log(chalk.yellow('Command not recognized.'));
     }
+  }
+
+  async currentAccount() {
+
+    console.log(
+      chalk.cyan.bold(
+        '\n👤 Active GitSwitch Profile\n'
+      )
+    );
+
+
+    const profile =
+      await this.githubService.getActiveProfile();
+
+
+    if (!profile.name) {
+
+      console.log(
+        chalk.yellow(
+          '⚠️ No active GitSwitch account found.'
+        )
+      );
+
+
+      console.log(
+        chalk.gray(
+          'Run: gitswitch use <account>'
+        )
+      );
+
+
+      return;
+    }
+
+
+    const repo =
+      await this.gitService.getRepositoryName();
+
+
+    const branch =
+      await this.gitService.getCurrentBranch();
+
+
+    const remote =
+      await this.gitService.getRemote();
+
+
+    console.log(
+      `${chalk.green('Account:')} ${profile.name}`
+    );
+
+
+    console.log(
+      `${chalk.green('Email:')} ${profile.email}`
+    );
+
+
+    console.log(
+      `${chalk.green('SSH:')} github-${profile.name}`
+    );
+
+
+    console.log(
+      `${chalk.green('Repository:')} ${repo ?? 'Not inside repository'}`
+    );
+
+
+    console.log(
+      `${chalk.green('Branch:')} ${branch ?? '-'}`
+    );
+
+
+    console.log(
+      `${chalk.green('Remote:')} ${remote ?? '-'}`
+    );
+
+
+    console.log();
   }
 }

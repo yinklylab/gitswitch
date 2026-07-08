@@ -47,7 +47,7 @@ export class GithubService {
             return { valid: false, reason: 'ENOTFOUND', hasToken: false };
           }
         }
-         const errorMessage = (error as Error)?.message || String(error);
+        const errorMessage = (error as Error)?.message || String(error);
         console.error(chalk.red(`⚠️ Error verifying GitHub account:`), errorMessage);
         return { valid: false, reason: "network_error", hasToken: false };
       }
@@ -214,5 +214,43 @@ export class GithubService {
       const err = await response.text();
       throw new Error(`GitHub key upload failed: ${err}`);
     }
+  }
+
+  async getActiveProfile(): Promise<{
+    name: string | null;
+    email: string | null;
+  }> {
+
+    if (!(await fs.pathExists(this.mainGitConfig))) {
+      return {
+        name: null,
+        email: null,
+      };
+    }
+
+
+    const content = await fs.readFile(
+      this.mainGitConfig,
+      'utf-8'
+    );
+
+
+    const nameMatch =
+      content.match(/name\s*=\s*(.*)/);
+
+
+    const emailMatch =
+      content.match(/email\s*=\s*(.*)/);
+
+
+    return {
+      name: nameMatch
+        ? nameMatch[1].trim()
+        : null,
+
+      email: emailMatch
+        ? emailMatch[1].trim()
+        : null,
+    };
   }
 }

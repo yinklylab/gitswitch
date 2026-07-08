@@ -14,25 +14,33 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
   });
+
   const cliService = app.get(CliService);
 
   try {
     program
       .name(CLI_NAME)
-      .description('A CLI tool to manage and switch between multiple GitHub accounts.')
+      .description(
+        'A CLI tool to manage and switch between multiple GitHub accounts.',
+      )
       .version(APP_VERSION, '-v, --version');
 
-    program
-      .action(async () => {
-        await cliService.showMainMenu(); 
-      });
 
     program
-      .command('setup') 
+      .command('current')
+      .description('Show active GitSwitch account')
+      .action(async () => {
+        await cliService.currentAccount();
+      });
+
+
+    program
+      .command('setup')
       .description('Run GitHub account setup wizard')
       .action(async () => {
-        await cliService.runSetup(); 
+        await cliService.runSetup();
       });
+
 
     program
       .command('list')
@@ -41,12 +49,14 @@ async function bootstrap() {
         await cliService.listAccounts();
       });
 
+
     program
       .command('use <account>')
       .description('Switch the active GitHub account')
       .action(async (account: string) => {
         await cliService.switchAccount(account);
       });
+
 
     program
       .command('delete <account>')
@@ -55,26 +65,44 @@ async function bootstrap() {
         await cliService.deleteAccount(account);
       });
 
+
     program
       .command('verify <username> [token]')
       .description('Verify a GitHub username or token')
       .action(async (username: string, token: string) => {
         await cliService.verifyAccount(username, token);
       });
-      
+
+
+    // 👇 DEFAULT COMMAND MUST BE LAST
+    program
+      .action(async () => {
+        await cliService.showMainMenu();
+      });
+
+
     await program.parseAsync(process.argv);
 
   } catch (err: any) {
-    console.error(chalk.red(`\n❌ Error: ${err.message}`));
-    
+
+    console.error(
+      chalk.red(`\n❌ Error: ${err.message}`)
+    );
+
+
     if (process.env.DEBUG) {
-      console.error(chalk.gray(err.stack));
+      console.error(
+        chalk.gray(err.stack)
+      );
     }
-    
-    process.exitCode = 1; 
+
+
+    process.exitCode = 1;
 
   } finally {
+
     await app.close();
+
   }
 }
 
