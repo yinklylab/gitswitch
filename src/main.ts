@@ -99,18 +99,22 @@ async function bootstrap() {
       );
 
     program
-      .command('push <account>')
+      .command('push <account> [branch]')
       .description(
         'Push repository using a GitSwitch account'
       )
       .action(
-        async (account: string) => {
+        async (
+          account: string,
+          branch?: string,
+        ) => {
 
           await cliService.pushWithAccount(
-            account
+            account,
+            branch,
           );
 
-        }
+        },
       );
 
 

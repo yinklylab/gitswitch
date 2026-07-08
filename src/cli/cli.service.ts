@@ -385,13 +385,13 @@ export class CliService {
         break;
       case 'push':
         const { pushAccount } = await inquirer.prompt([
-            {
-              type: 'input',
-              name: 'pushAccount',
-              message:
-                'Account name:',
-            }
-          ]);
+          {
+            type: 'input',
+            name: 'pushAccount',
+            message:
+              'Account name:',
+          }
+        ]);
         await this.pushWithAccount(pushAccount);
         break;
       case 'verify':
@@ -701,7 +701,7 @@ export class CliService {
     );
   }
 
-  async pushWithAccount(accountName: string) {
+  async pushWithAccount(accountName: string, targetBranch?: string) {
 
     console.log(
       chalk.cyan(
@@ -764,11 +764,34 @@ export class CliService {
       await this.gitService.getCurrentBranch();
 
 
-    if (!currentBranch) {
+    if (!currentBranch && !targetBranch) {
 
       console.log(
         chalk.red(
           '❌ Unable to detect current branch.'
+        )
+      );
+
+      return;
+    }
+
+    if (targetBranch) {
+
+      console.log(
+        chalk.cyan(
+          `🚀 Pushing directly to '${targetBranch}'`
+        )
+      );
+
+
+      await this.gitService.push(
+        targetBranch
+      );
+
+
+      console.log(
+        chalk.greenBright(
+          `\n🎉 Successfully pushed '${targetBranch}' using '${accountName}'\n`
         )
       );
 
