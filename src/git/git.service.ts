@@ -164,4 +164,67 @@ export class GitService {
       .split(/[\\/]/)
       .pop() ?? null;
   }
+
+  convertRemoteUrl(
+    currentRemote: string,
+    hostAlias: string,
+  ): string {
+
+    // SSH format:
+    // git@github.com:user/repo.git
+
+    if (
+      currentRemote.startsWith(
+        'git@github.com:'
+      )
+    ) {
+
+      return currentRemote.replace(
+        'git@github.com:',
+        `git@${hostAlias}:`,
+      );
+
+    }
+
+
+    // HTTPS format:
+    // https://github.com/user/repo.git
+
+    if (
+      currentRemote.startsWith(
+        'https://github.com/'
+      )
+    ) {
+
+      const repoPath =
+        currentRemote.replace(
+          'https://github.com/',
+          '',
+        );
+
+
+      return `git@${hostAlias}:${repoPath}`;
+
+    }
+
+
+    // already using alias
+    // git@github-work:user/repo.git
+
+    if (
+      currentRemote.startsWith('git@')
+    ) {
+
+      const repoPath =
+        currentRemote.split(':')[1];
+
+
+      return `git@${hostAlias}:${repoPath}`;
+    }
+
+
+    throw new Error(
+      `Unsupported remote format: ${currentRemote}`
+    );
+  }
 }

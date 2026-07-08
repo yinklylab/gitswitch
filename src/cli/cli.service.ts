@@ -318,6 +318,10 @@ export class CliService {
         name: chalk.cyan.bold('🚀 Workflow Guide') + chalk.dim(' - Learn how to use GitSwitch.'),
         value: 'guide',
       },
+      {
+        name: chalk.blue.bold('🔗 Switch Remote') + chalk.dim(' - Change repository GitHub identity.'),
+        value: 'remote',
+      },
     ];
 
     const { command } = await inquirer.prompt([
@@ -363,6 +367,17 @@ export class CliService {
         break;
       case 'guide':
         await this.showGuide();
+        break;
+      case 'remote':
+        const { remoteAccount } = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'remoteAccount',
+              message:
+                'Account name:',
+            }
+          ]);
+        await this.switchRemote(remoteAccount);
         break;
       case 'verify':
         const { username, token } = await inquirer.prompt([
@@ -568,6 +583,105 @@ export class CliService {
     console.log(
       chalk.gray(
         'Run `gitswitch list` anytime to view your configured accounts.\n'
+      )
+    );
+  }
+
+  async switchRemote(accountName: string) {
+
+    console.log(
+      chalk.cyan(
+        `\n🔀 Switching repository remote to '${accountName}'...\n`
+      )
+    );
+
+
+    const account =
+      await this.accountService.getAccount(
+        accountName
+      );
+
+
+    if (!account) {
+
+      console.log(
+        chalk.red(
+          `❌ Account '${accountName}' does not exist.`
+        )
+      );
+
+
+      console.log(
+        chalk.gray(
+          'Run: gitswitch setup'
+        )
+      );
+
+      return;
+    }
+
+
+
+    const isRepo =
+      await this.gitService.isGitRepository();
+
+
+    if (!isRepo) {
+
+      console.log(
+        chalk.red(
+          '❌ Current directory is not a Git repository.'
+        )
+      );
+
+      return;
+    }
+
+
+
+
+    const currentRemote =
+      await this.gitService.getRemote();
+
+
+    if (!currentRemote) {
+
+      console.log(
+        chalk.yellow(
+          '⚠️ No remote origin found.'
+        )
+      );
+
+      return;
+    }
+
+
+
+
+    const newRemote =
+      this.gitService.convertRemoteUrl(
+        currentRemote,
+        account.hostAlias,
+      );
+
+
+
+    await this.gitService.setRemote(
+      newRemote
+    );
+
+
+
+    console.log(
+      chalk.green(
+        '\n✅ Repository account switched successfully'
+      )
+    );
+
+
+    console.log(
+      chalk.gray(
+        newRemote
       )
     );
   }

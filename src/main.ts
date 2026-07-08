@@ -73,6 +73,7 @@ async function bootstrap() {
         await cliService.verifyAccount(username, token);
       });
 
+
     program
       .command('guide')
       .description(
@@ -81,6 +82,21 @@ async function bootstrap() {
       .action(async () => {
         await cliService.showGuide();
       });
+
+    program
+      .command('remote <account>')
+      .description(
+        'Switch repository remote to a GitSwitch account'
+      )
+      .action(
+        async (account: string) => {
+
+          await cliService.switchRemote(
+            account
+          );
+
+        }
+      );
 
 
     // 👇 DEFAULT COMMAND MUST BE LAST
