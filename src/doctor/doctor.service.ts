@@ -5,301 +5,122 @@ import * as fs from 'fs-extra';
 import { GitService } from '../git/git.service';
 import { AccountService } from '../account/account.service';
 
-
 @Injectable()
 export class DoctorService {
-
   constructor(
     private readonly gitService: GitService,
     private readonly accountService: AccountService,
-  ) { }
-
+  ) {}
 
   private success(message: string) {
-
-    console.log(
-      chalk.green(`✓ ${message}`)
-    );
-
+    console.log(chalk.green(`✓ ${message}`));
   }
-
 
   private warning(message: string) {
-
-    console.log(
-      chalk.yellow(`⚠ ${message}`)
-    );
-
+    console.log(chalk.yellow(`⚠ ${message}`));
   }
-
 
   private error(message: string) {
-
-    console.log(
-      chalk.red(`✗ ${message}`)
-    );
-
+    console.log(chalk.red(`✗ ${message}`));
   }
 
-
-
   async run() {
+    console.log(chalk.cyan.bold('\n🩺 GitSwitch Health Check\n'));
 
-    console.log(
-      chalk.cyan.bold(
-        '\n🩺 GitSwitch Health Check\n'
-      )
-    );
+    this.checkGit();
 
+    this.checkSSH();
 
-    await this.checkGit();
-
-    await this.checkSSH();
-
-    await this.checkGithub();
+    this.checkGithub();
 
     await this.checkAccounts();
 
     await this.checkRepository();
 
-
-    console.log(
-      chalk.greenBright(
-        '\n🚀 Health check completed\n'
-      )
-    );
-
+    console.log(chalk.greenBright('\n🚀 Health check completed\n'));
   }
 
-
-
-  private async checkGit() {
-
+  private checkGit() {
     try {
+      const version = execSync('git --version').toString().trim();
 
-      const version =
-        execSync('git --version')
-          .toString()
-          .trim();
-
-
-      this.success(
-        `Git installed (${version})`
-      );
-
-
+      this.success(`Git installed (${version})`);
     } catch {
-
-
-      this.error(
-        'Git is not installed'
-      );
-
+      this.error('Git is not installed');
     }
-
   }
 
-
-
-
-  private async checkSSH() {
-
+  private checkSSH() {
     try {
+      execSync('ssh -V', {
+        stdio: 'ignore',
+      });
 
-      execSync(
-        'ssh -V',
-        {
-          stdio: 'ignore'
-        }
-      );
-
-
-      this.success(
-        'SSH installed'
-      );
-
-
+      this.success('SSH installed');
     } catch {
-
-
-      this.error(
-        'SSH is missing'
-      );
-
+      this.error('SSH is missing');
     }
-
   }
 
-
-
-
-  private async checkGithub() {
-
+  private checkGithub() {
     try {
+      execSync('ssh -T git@github.com', {
+        stdio: 'ignore',
+      });
 
-
-      execSync(
-        'ssh -T git@github.com',
-        {
-          stdio: 'ignore'
-        }
-      );
-
-
-      this.success(
-        'GitHub SSH reachable'
-      );
-
-
+      this.success('GitHub SSH reachable');
     } catch {
-
-
-      this.warning(
-        'GitHub SSH authentication not verified'
-      );
-
+      this.warning('GitHub SSH authentication not verified');
     }
-
   }
-
-
-
-
 
   private async checkAccounts() {
+    const accounts = await this.accountService.getAccounts();
 
-
-    const accounts =
-      await this.accountService.getAccounts();
-
-
-
-    const names =
-      Object.keys(accounts);
-
-
+    const names = Object.keys(accounts);
 
     if (!names.length) {
-
-
-      this.error(
-        'No GitSwitch accounts configured'
-      );
-
+      this.error('No GitSwitch accounts configured');
 
       return;
-
     }
 
-
-
-    this.success(
-      `${names.length} GitSwitch account(s) configured`
-    );
-
-
+    this.success(`${names.length} GitSwitch account(s) configured`);
 
     for (const account of names) {
+      const sshKey = accounts[account].sshKey;
 
-
-      const sshKey =
-        accounts[account].sshKey;
-
-
-
-      if (
-        await fs.pathExists(sshKey)
-      ) {
-
-
-        this.success(
-          `${account} SSH key exists`
-        );
-
-
+      if (await fs.pathExists(sshKey)) {
+        this.success(`${account} SSH key exists`);
       } else {
-
-
-        this.error(
-          `${account} SSH key missing`
-        );
-
+        this.error(`${account} SSH key missing`);
       }
-
     }
-
   }
-
-
-
-
 
   private async checkRepository() {
-
-
-    const isRepo =
-      await this.gitService.isGitRepository();
-
-
+    const isRepo = await this.gitService.isGitRepository();
 
     if (!isRepo) {
-
-
-      this.warning(
-        'Current directory is not a Git repository'
-      );
-
+      this.warning('Current directory is not a Git repository');
 
       return;
-
     }
 
+    this.success('Current directory is a Git repository');
 
-
-    this.success(
-      'Current directory is a Git repository'
-    );
-
-
-
-    const branch =
-      await this.gitService.getCurrentBranch();
-
-
+    const branch = await this.gitService.getCurrentBranch();
 
     if (branch) {
-
-
-      this.success(
-        `Current branch: ${branch}`
-      );
-
+      this.success(`Current branch: ${branch}`);
     }
 
-
-
-    const remote =
-      await this.gitService.getRemote();
-
-
+    const remote = await this.gitService.getRemote();
 
     if (remote) {
-
-
-      this.success(
-        `Remote configured: ${remote}`
-      );
-
-
+      this.success(`Remote configured: ${remote}`);
     } else {
-
-
-      this.warning(
-        'No remote configured'
-      );
-
+      this.warning('No remote configured');
     }
-
   }
-
 }

@@ -10,18 +10,16 @@ export class GitService {
     this.git = simpleGit();
   }
 
-
   async isGitRepository(): Promise<boolean> {
     return await this.git.checkIsRepo();
   }
-
 
   async getCurrentBranch(): Promise<string | null> {
     const isRepo = await this.isGitRepository();
 
     if (!isRepo) {
       console.log(
-        chalk.yellow('⚠️ Current directory is not a Git repository.')
+        chalk.yellow('⚠️ Current directory is not a Git repository.'),
       );
       return null;
     }
@@ -31,223 +29,98 @@ export class GitService {
     return branch.current;
   }
 
-
   async getRemote(): Promise<string | null> {
     const isRepo = await this.isGitRepository();
 
     if (!isRepo) return null;
 
-
     const remotes = await this.git.getRemotes(true);
 
-    const origin = remotes.find(
-      remote => remote.name === 'origin'
-    );
-
+    const origin = remotes.find((remote) => remote.name === 'origin');
 
     return origin?.refs.fetch ?? null;
   }
 
-
   async setRemote(remoteUrl: string): Promise<void> {
-
     const existing = await this.getRemote();
 
-
     if (existing) {
-
-      await this.git.remote([
-        'set-url',
-        'origin',
-        remoteUrl,
-      ]);
-
+      await this.git.remote(['set-url', 'origin', remoteUrl]);
     } else {
-
-      await this.git.addRemote(
-        'origin',
-        remoteUrl
-      );
+      await this.git.addRemote('origin', remoteUrl);
     }
 
-
-    console.log(
-      chalk.green(
-        `✅ Remote updated: ${remoteUrl}`
-      )
-    );
+    console.log(chalk.green(`✅ Remote updated: ${remoteUrl}`));
   }
-
 
   async push(branch?: string): Promise<void> {
-
-    const targetBranch =
-      branch ||
-      await this.getCurrentBranch();
+    const targetBranch = branch || (await this.getCurrentBranch());
 
     if (!targetBranch) {
-      throw new Error(
-        'Unable to determine branch'
-      );
+      throw new Error('Unable to determine branch');
     }
 
-    console.log(
-      chalk.cyan(
-        `🚀 Pushing branch ${targetBranch}...`
-      )
-    );
+    console.log(chalk.cyan(`🚀 Pushing branch ${targetBranch}...`));
 
-    await this.git.push(
-      'origin',
-      targetBranch
-    );
+    await this.git.push('origin', targetBranch);
 
-    console.log(
-      chalk.green(
-        '✅ Push completed successfully'
-      )
-    );
+    console.log(chalk.green('✅ Push completed successfully'));
   }
 
-  async clone(
-    repoUrl: string,
-    directory?: string,
-  ): Promise<void> {
-
-    console.log(
-      chalk.cyan(
-        '📦 Cloning repository...'
-      )
-    );
-
+  async clone(repoUrl: string, directory?: string): Promise<void> {
+    console.log(chalk.cyan('📦 Cloning repository...'));
 
     if (directory) {
-
-      await this.git.clone(
-        repoUrl,
-        directory
-      );
-
+      await this.git.clone(repoUrl, directory);
     } else {
-
-      await this.git.clone(
-        repoUrl
-      );
-
+      await this.git.clone(repoUrl);
     }
 
-    console.log(
-      chalk.green(
-        '✅ Repository cloned'
-      )
-    );
+    console.log(chalk.green('✅ Repository cloned'));
   }
 
   async getRepositoryName(): Promise<string | null> {
-
-    const isRepo =
-      await this.isGitRepository();
-
+    const isRepo = await this.isGitRepository();
 
     if (!isRepo) {
       return null;
     }
 
+    const root = await this.git.revparse(['--show-toplevel']);
 
-    const root =
-      await this.git.revparse([
-        '--show-toplevel',
-      ]);
-
-
-    return root
-      .split(/[\\/]/)
-      .pop() ?? null;
+    return root.split(/[\\/]/).pop() ?? null;
   }
 
-  convertRemoteUrl(
-    remoteUrl: string,
-    hostAlias: string,
-  ): string {
-
+  convertRemoteUrl(remoteUrl: string, hostAlias: string): string {
     let converted = remoteUrl;
-
 
     // HTTPS
     // https://github.com/user/project
 
-    if (
-      remoteUrl.startsWith(
-        'https://github.com/'
-      )
-    ) {
+    if (remoteUrl.startsWith('https://github.com/')) {
+      const repoPath = remoteUrl.replace('https://github.com/', '');
 
-      const repoPath =
-        remoteUrl.replace(
-          'https://github.com/',
-          '',
-        );
-
-
-      converted =
-        `git@${hostAlias}:${repoPath}`;
-
+      converted = `git@${hostAlias}:${repoPath}`;
     }
-
-
 
     // Default SSH
     // git@github.com:user/project.git
-
-    else if (
-      remoteUrl.startsWith(
-        'git@github.com:'
-      )
-    ) {
-
-      converted =
-        remoteUrl.replace(
-          'git@github.com:',
-          `git@${hostAlias}:`,
-        );
-
+    else if (remoteUrl.startsWith('git@github.com:')) {
+      converted = remoteUrl.replace('git@github.com:', `git@${hostAlias}:`);
     }
-
-
 
     // Existing alias
     // git@github-old:user/project.git
+    else if (remoteUrl.startsWith('git@')) {
+      const repoPath = remoteUrl.split(':')[1];
 
-    else if (
-      remoteUrl.startsWith(
-        'git@'
-      )
-    ) {
-
-      const repoPath =
-        remoteUrl.split(':')[1];
-
-
-      converted =
-        `git@${hostAlias}:${repoPath}`;
-
+      converted = `git@${hostAlias}:${repoPath}`;
+    } else {
+      throw new Error(`Unsupported GitHub URL: ${remoteUrl}`);
     }
 
-
-    else {
-
-      throw new Error(
-        `Unsupported GitHub URL: ${remoteUrl}`
-      );
-
-    }
-
-    if (
-      !converted.endsWith('.git')
-    ) {
-
+    if (!converted.endsWith('.git')) {
       converted += '.git';
-
     }
 
     return converted;

@@ -1,28 +1,75 @@
-# Git Switch — Effortless Multi-GitHub Account Manager (by Yinkly)
+# GitSwitch — Effortless Multi-GitHub Account Workflow Manager (by Yinkly)
 
-**Git Switch** is a powerful and user-friendly CLI tool built with NestJS that helps developers manage multiple GitHub accounts seamlessly on a single machine.
+**GitSwitch** is a powerful developer-focused CLI built with NestJS that helps developers manage multiple GitHub accounts and automate Git workflows on a single machine.
 
-Whether you juggle personal, client, and work accounts — Git Switch keeps you in control without manually editing `.gitconfig` or SSH files.
+Whether you work across personal projects, company repositories, freelance clients, or open-source contributions — GitSwitch helps you switch identities, clone repositories, configure remotes, and push code using the correct GitHub account.
 
-## Features
+No more SSH confusion.
+No more wrong-account commits.
+No more GitHub identity headaches.
 
-✅ Manage multiple GitHub accounts (personal, work, client, etc.)  
-✅ Automatically handle `.gitconfig` and SSH configurations  
-✅ Quick account switching from the terminal  
-✅ Secure key storage and verification  
-✅ Works on **Windows, macOS, and Linux**  
-✅ Built-in setup wizard and validation commands  
-✅ Locking & concurrency protection to prevent corruption  
+---
 
-## Installation
+## ✨ Features
 
-Install globally via **npm** or **yarn**:
+### 👥 Account Management
+
+* Manage multiple GitHub accounts (personal, work, client, etc.)
+* Interactive account setup wizard
+* Automatic `.gitconfig` management
+* Automatic SSH key generation and configuration
+* Secure GitHub token storage using OS credential storage
+* GitHub username and token verification
+* Safe account removal
+
+### 🚀 Git Workflow Automation
+
+* Clone repositories with a selected GitHub account
+* Supports HTTPS and SSH GitHub clone URLs
+* Automatically converts repository URLs to account-specific SSH aliases
+* Switch repository remotes between GitHub identities
+* Push code using a specific GitHub account
+* Interactive branch selection during push
+* Direct branch push support
+
+### 🛠 Developer Tools
+
+* View current GitSwitch profile
+* Detect active repository, branch, and remote
+* Built-in workflow guide
+* Environment diagnostics with GitSwitch Doctor
+* Cross-platform support
+* Config locking to prevent corruption
+
+---
+
+## 🖥 Supported Platforms
+
+* Windows
+* macOS
+* Linux
+
+Requirements:
+
+* Node.js 18+
+* Git
+* SSH
+
+---
+
+## 📦 Installation
+
+Install globally with npm:
 
 ```bash
 npm install -g @yinklylab.dev/gitswitch
-# or
+```
+
+Or with Yarn:
+
+```bash
 yarn global add @yinklylab.dev/gitswitch
-````
+```
 
 Verify installation:
 
@@ -30,84 +77,293 @@ Verify installation:
 gitswitch -v
 ```
 
-## Quick Start
+---
 
-Run the setup wizard to configure your first GitHub account:
+# 🚀 Quick Start
+
+## Setup a GitHub Account
 
 ```bash
 gitswitch setup
 ```
 
-List all configured accounts:
+GitSwitch will:
+
+* Configure Git username and email
+* Generate SSH keys
+* Update SSH configuration
+* Save account metadata
+* Verify GitHub credentials
+
+---
+
+## List Accounts
 
 ```bash
 gitswitch list
 ```
 
-Switch between accounts easily:
+Example:
+
+```text
+Configured Accounts
+
+✓ personal
+✓ work
+✓ client
+```
+
+---
+
+## Switch Active Git Account
 
 ```bash
 gitswitch use <account>
 ```
 
-Delete an account configuration:
+Example:
 
 ```bash
-gitswitch delete <account>
+gitswitch use personal
 ```
 
-Verify a GitHub username or token:
+GitSwitch automatically updates your active Git identity.
+
+---
+
+# Repository Workflow
+
+## Clone Repository with an Account
+
+Instead of manually configuring SSH:
 
 ```bash
-gitswitch verify <username> [token]
+git clone git@github-work:user/project.git
 ```
 
-## Example Workflow
+Use:
 
 ```bash
-# Step 1: Setup your work account
+gitswitch clone work https://github.com/user/project.git
+```
+
+GitSwitch converts:
+
+```text
+https://github.com/user/project.git
+
+↓
+
+git@github-work:user/project.git
+```
+
+SSH URLs work too:
+
+```bash
+gitswitch clone work git@github.com:user/project.git
+```
+
+---
+
+## Change Repository GitHub Account
+
+For an existing repository:
+
+```bash
+gitswitch remote work
+```
+
+Before:
+
+```text
+git@github.com:user/project.git
+```
+
+After:
+
+```text
+git@github-work:user/project.git
+```
+
+---
+
+## Push Using an Account
+
+Interactive mode:
+
+```bash
+gitswitch push work
+```
+
+Example:
+
+```text
+Using account: work
+
+Current branch:
+feature/payment
+
+Push where?
+
+❯ Current branch
+  Different branch
+```
+
+Direct branch push:
+
+```bash
+gitswitch push work main
+```
+
+---
+
+## Current Profile
+
+Check your active GitSwitch environment:
+
+```bash
+gitswitch current
+```
+
+Example:
+
+```text
+👤 Active GitSwitch Profile
+
+Account: work
+
+Email: developer@company.com
+
+SSH: github-work
+
+Repository: payment-api
+
+Branch: main
+
+Remote:
+git@github-work:company/payment-api.git
+```
+
+---
+
+# 🩺 GitSwitch Doctor
+
+Run diagnostics:
+
+```bash
+gitswitch doctor
+```
+
+Checks:
+
+```text
+GitSwitch Health Check
+
+✓ Git installed
+✓ SSH installed
+✓ GitHub reachable
+✓ Account configuration exists
+✓ SSH keys exist
+✓ Repository detected
+✓ Remote configured
+
+Everything looks good 🚀
+```
+
+---
+
+# 📖 Workflow Guide
+
+View GitSwitch usage instructions anytime:
+
+```bash
+gitswitch guide
+```
+
+---
+
+# Commands
+
+| Command                            | Description                       |
+| ---------------------------------- | --------------------------------- |
+| `gitswitch setup`                  | Configure a GitHub account        |
+| `gitswitch list`                   | View configured accounts          |
+| `gitswitch use <account>`          | Switch active Git identity        |
+| `gitswitch current`                | Show current profile              |
+| `gitswitch clone <account> <repo>` | Clone repository with an account  |
+| `gitswitch remote <account>`       | Switch repository remote identity |
+| `gitswitch push <account>`         | Push using selected account       |
+| `gitswitch verify <username>`      | Verify GitHub credentials         |
+| `gitswitch doctor`                 | Run diagnostics                   |
+| `gitswitch guide`                  | Show workflow help                |
+| `gitswitch delete <account>`       | Remove an account                 |
+
+---
+
+# Example Workflow
+
+```bash
+# Setup your accounts
 gitswitch setup
 
-# Step 2: Add your personal GitHub account
-gitswitch setup
-
-# Step 3: View all available accounts
+# View accounts
 gitswitch list
 
-# Step 4: Switch to your personal account
-gitswitch use personal
+# Clone repository
+gitswitch clone work https://github.com/company/api.git
 
-# Step 5: Verify your token or username
-gitswitch verify myusername ghp_xxxxxxxxx
+# Check environment
+gitswitch current
+
+# Make changes
+git add .
+
+git commit -m "feat: add API"
+
+# Push safely
+gitswitch push work
 ```
 
-Git Switch will update your local `.gitconfig`, `.ssh/config`, and SSH keys automatically.
-No more manual editing or confusing GitHub authentication issues.
+---
 
-## Supported Platforms
+# 🔐 Security
 
-* Windows
-* macOS
-* Linux
+GitSwitch:
 
-> Works wherever Node.js (v18+) is installed.
+* Stores tokens using your operating system credential manager
+* Does not save plain-text GitHub tokens
+* Creates isolated SSH identities
+* Keeps account configurations separated
 
-## Troubleshooting
+---
 
-If you get permission or concurrency errors:
+# Troubleshooting
 
-* Run the CLI with admin privileges (Windows)
-* Ensure `.gitconfig` and `.ssh` folders are writable
-* For version errors: run `npm version patch` and re-publish
+Run:
 
-## Author
+```bash
+gitswitch doctor
+```
+
+to diagnose:
+
+* SSH issues
+* Missing keys
+* Remote problems
+* Account configuration errors
+
+---
+
+# Author
 
 **Oluyinka Abubakar**
 Developer, Innovator & Open Source Enthusiast
-[GitHub](https://github.com/lexico4real) · [LinkedIn](https://linkedin.com/in/oluyinka-abubakar)
 
-## License
+GitHub: https://github.com/lexico4real
+LinkedIn: https://linkedin.com/in/oluyinka-abubakar
 
-MIT License © 2025 [Yinkly Lab](https://github.com/yinkly)
+---
 
+# License
 
+MIT License © 2026 Yinkly Lab

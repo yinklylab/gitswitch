@@ -25,14 +25,12 @@ async function bootstrap() {
       )
       .version(APP_VERSION, '-v, --version');
 
-
     program
       .command('current')
       .description('Show active GitSwitch account')
       .action(async () => {
         await cliService.currentAccount();
       });
-
 
     program
       .command('setup')
@@ -41,14 +39,12 @@ async function bootstrap() {
         await cliService.runSetup();
       });
 
-
     program
       .command('list')
       .description('List all configured GitHub accounts')
       .action(async () => {
         await cliService.listAccounts();
       });
-
 
     program
       .command('use <account>')
@@ -57,14 +53,12 @@ async function bootstrap() {
         await cliService.switchAccount(account);
       });
 
-
     program
       .command('delete <account>')
       .description('Delete a specific GitHub account configuration')
       .action(async (account: string) => {
         await cliService.deleteAccount(account);
       });
-
 
     program
       .command('verify <username> [token]')
@@ -73,111 +67,57 @@ async function bootstrap() {
         await cliService.verifyAccount(username, token);
       });
 
-
     program
       .command('guide')
-      .description(
-        'Show GitSwitch workflow guide'
-      )
+      .description('Show GitSwitch workflow guide')
       .action(async () => {
         await cliService.showGuide();
       });
 
     program
       .command('remote <account>')
-      .description(
-        'Switch repository remote to a GitSwitch account'
-      )
-      .action(
-        async (account: string) => {
-
-          await cliService.switchRemote(
-            account
-          );
-
-        }
-      );
+      .description('Switch repository remote to a GitSwitch account')
+      .action(async (account: string) => {
+        await cliService.switchRemote(account);
+      });
 
     program
       .command('push <account> [branch]')
-      .description(
-        'Push repository using a GitSwitch account'
-      )
-      .action(
-        async (
-          account: string,
-          branch?: string,
-        ) => {
-
-          await cliService.pushWithAccount(
-            account,
-            branch,
-          );
-        },
-      );
+      .description('Push repository using a GitSwitch account')
+      .action(async (account: string, branch?: string) => {
+        await cliService.pushWithAccount(account, branch);
+      });
 
     program
-      .command(
-        'clone <account> <repo>'
-      )
-      .description(
-        'Clone repository using a GitSwitch account'
-      )
-      .action(
-        async (
-          account: string,
-          repo: string,
-        ) => {
-
-
-          await cliService.cloneWithAccount(
-            account,
-            repo,
-          );
-        },
-      );
+      .command('clone <account> <repo>')
+      .description('Clone repository using a GitSwitch account')
+      .action(async (account: string, repo: string) => {
+        await cliService.cloneWithAccount(account, repo);
+      });
 
     program
       .command('doctor')
-      .description(
-        'Run GitSwitch health diagnostics'
-      )
+      .description('Run GitSwitch health diagnostics')
       .action(async () => {
-
         await cliService.doctor();
-
       });
-
 
     // 👇 DEFAULT COMMAND MUST BE LAST
-    program
-      .action(async () => {
-        await cliService.showMainMenu();
-      });
-
+    program.action(async () => {
+      await cliService.showMainMenu();
+    });
 
     await program.parseAsync(process.argv);
-
   } catch (err: any) {
-
-    console.error(
-      chalk.red(`\n❌ Error: ${err.message}`)
-    );
-
+    console.error(chalk.red(`\n❌ Error: ${err.message}`));
 
     if (process.env.DEBUG) {
-      console.error(
-        chalk.gray(err.stack)
-      );
+      console.error(chalk.gray(err.stack));
     }
 
-
     process.exitCode = 1;
-
   } finally {
-
     await app.close();
-
   }
 }
 

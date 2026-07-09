@@ -4,11 +4,7 @@ import { AccountModule } from '../account/account.module';
 import { GitModule } from '../git/git.module';
 
 @Module({
-  imports: [
-    GitModule,
-    AccountModule,
-    DoctorModule,
-  ],
+  imports: [GitModule, AccountModule, DoctorModule],
   providers: [DoctorService],
   exports: [DoctorService],
 })

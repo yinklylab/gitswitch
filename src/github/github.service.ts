@@ -3,52 +3,58 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
 import simpleGit from 'simple-git';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import chalk from 'chalk';
 import { TokenService } from '../token/token.service';
 
 @Injectable()
 export class GithubService {
-  constructor(private readonly tokenService: TokenService) { }
+  constructor(private readonly tokenService: TokenService) {}
   private homeDir = os.homedir();
   private mainGitConfig = path.join(this.homeDir, '.gitconfig');
-  private baseUrl = process.env.GITHUB_USERS_URL || 'https://api.github.com/users';
+  private baseUrl =
+    process.env.GITHUB_USERS_URL || 'https://api.github.com/users';
 
-  async verifyAccount(username: string, token?: string): Promise<{
+  async verifyAccount(
+    username: string,
+    token?: string,
+  ): Promise<{
     valid: boolean;
     reason?: string;
     authenticatedUser?: string;
     hasToken?: boolean;
   }> {
     if (!token) {
-      console.log(chalk.yellow("⚠️ No GitHub token provided. Checking if username exists..."));
+      console.log(
+        chalk.yellow(
+          '⚠️ No GitHub token provided. Checking if username exists...',
+        ),
+      );
       try {
         const response = await axios.get(`${this.baseUrl}/${username}`, {
           headers: {
-            "User-Agent": "GitSwitch",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28"
-          }
+            'User-Agent': 'GitSwitch',
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
         });
 
         const { login } = response.data || {};
 
-        if (response.status === 200 && login?.toLowerCase() === username.toLowerCase()) {
+        if (
+          response.status === 200 &&
+          login?.toLowerCase() === username.toLowerCase()
+        ) {
           console.log(chalk.green(`✅ GitHub account '${username}' exists.`));
           return { valid: true, hasToken: false };
         }
         console.log(chalk.red(`❌ GitHub account '${username}' not found.`));
-        return { valid: false, reason: "api_error", hasToken: false };
+        return { valid: false, reason: 'api_error', hasToken: false };
       } catch (error) {
-
         if (axios.isAxiosError(error)) {
-
           if (error.response?.status === 404) {
-
             console.error(
-              chalk.red(
-                `❌ GitHub account '${username}' not found.`
-              )
+              chalk.red(`❌ GitHub account '${username}' not found.`),
             );
 
             return {
@@ -58,22 +64,12 @@ export class GithubService {
             };
           }
 
-
           if (error.response?.status === 403) {
+            console.log(chalk.yellow('⚠️ GitHub API rate limit reached.'));
 
             console.log(
-              chalk.yellow(
-                '⚠️ GitHub API rate limit reached.'
-              )
+              chalk.yellow('Skipping online verification. Continuing setup...'),
             );
-
-
-            console.log(
-              chalk.yellow(
-                'Skipping online verification. Continuing setup...'
-              )
-            );
-
 
             return {
               valid: true,
@@ -82,15 +78,12 @@ export class GithubService {
             };
           }
 
-
           if (error.code === 'ENOTFOUND') {
-
             console.error(
               chalk.red(
-                '❌ Verification failed! Please check your internet connection'
-              )
+                '❌ Verification failed! Please check your internet connection',
+              ),
             );
-
 
             return {
               valid: false,
@@ -98,22 +91,14 @@ export class GithubService {
               hasToken: false,
             };
           }
-
         }
 
-
-        const errorMessage =
-          (error as Error)?.message ||
-          String(error);
-
+        const errorMessage = (error as Error)?.message || String(error);
 
         console.error(
-          chalk.red(
-            `⚠️ Error verifying GitHub account:`
-          ),
-          errorMessage
+          chalk.red(`⚠️ Error verifying GitHub account:`),
+          errorMessage,
         );
-
 
         return {
           valid: false,
@@ -124,18 +109,20 @@ export class GithubService {
     }
 
     try {
-      const response = await axios.get("https://api.github.com/user", {
+      const response = await axios.get('https://api.github.com/user', {
         headers: {
           Authorization: `token ${token}`,
-          "User-Agent": "GitSwitch",
-          "Accept": "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28"
+          'User-Agent': 'GitSwitch',
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
         },
       });
 
       const { login: authenticatedUser } = response.data || {};
       if (!authenticatedUser) {
-        console.error(chalk.red('⚠️ Received unexpected response from GitHub API /user.'));
+        console.error(
+          chalk.red('⚠️ Received unexpected response from GitHub API /user.'),
+        );
         return { valid: false, reason: 'api_error', hasToken: true };
       }
 
@@ -145,15 +132,20 @@ export class GithubService {
       } else {
         console.log(
           chalk.red(
-            `❌ Token belongs to '${authenticatedUser}', not '${username}'. Please check the token.`
-          )
+            `❌ Token belongs to '${authenticatedUser}', not '${username}'. Please check the token.`,
+          ),
         );
-        return { valid: false, reason: 'wrong_user', authenticatedUser, hasToken: true };
+        return {
+          valid: false,
+          reason: 'wrong_user',
+          authenticatedUser,
+          hasToken: true,
+        };
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          console.log(chalk.red("❌ Invalid or expired GitHub token."));
+          console.log(chalk.red('❌ Invalid or expired GitHub token.'));
           return { valid: false, reason: 'unauthorized', hasToken: true };
         }
       }
@@ -220,11 +212,19 @@ export class GithubService {
 
     const token = await this.tokenService.getToken(username);
     if (!token) {
-      console.log(chalk.yellow(`⚠️ No token found for '${username}'. Proceeding without verification...`));
+      console.log(
+        chalk.yellow(
+          `⚠️ No token found for '${username}'. Proceeding without verification...`,
+        ),
+      );
     } else {
       const isValid = await this.verifyAccount(username, token);
       if (!isValid) {
-        console.log(chalk.red(`❌ Invalid or expired token for '${username}'. Aborting switch.`));
+        console.log(
+          chalk.red(
+            `❌ Invalid or expired token for '${username}'. Aborting switch.`,
+          ),
+        );
         return;
       }
     }
@@ -239,7 +239,9 @@ export class GithubService {
     try {
       await fs.writeFile(activeFile, username, 'utf8');
     } catch (err) {
-      console.log(chalk.red(`⚠️ Could not record active account: ${err.message}`));
+      console.log(
+        chalk.red(`⚠️ Could not record active account: ${err.message}`),
+      );
     }
 
     console.log(chalk.green(`✅ Switched successfully to '${username}'.`));
@@ -252,32 +254,47 @@ export class GithubService {
     return match ? match[1].trim() : null;
   }
 
-  async cloneRepoWithAccount(repoUrl: string, accountAlias: string, targetDir: string) {
+  async cloneRepoWithAccount(
+    repoUrl: string,
+    accountAlias: string,
+    targetDir: string,
+  ) {
     const git = simpleGit();
     const sshUrl = repoUrl.replace('github.com', `${accountAlias}`);
     await git.clone(sshUrl, targetDir);
   }
 
-  async keyExistsOnGithub(username: string, publicKey: string, token: string): Promise<boolean> {
+  async keyExistsOnGithub(
+    username: string,
+    publicKey: string,
+    token: string,
+  ): Promise<boolean> {
     try {
       const response = await axios.get(`${this.baseUrl}/user/keys`, {
         headers: {
           Authorization: `token ${token}`,
-          "User-Agent": "GitSwitch",
-          "Accept": "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28"
+          'User-Agent': 'GitSwitch',
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
         },
       });
 
       const keys = response.data as { key: string }[];
       return keys.some((k) => k.key.trim() === publicKey.trim());
     } catch (err) {
-      console.error(chalk.red('⚠️ Could not verify SSH key on GitHub:'), err.response?.data || err.message);
+      console.error(
+        chalk.red('⚠️ Could not verify SSH key on GitHub:'),
+        err.response?.data || err.message,
+      );
       return false;
     }
   }
 
-  async uploadKey(publicKey: string, token: string, title: string): Promise<void> {
+  async uploadKey(
+    publicKey: string,
+    token: string,
+    title: string,
+  ): Promise<void> {
     const response = await fetch('https://api.github.com/user/keys', {
       method: 'POST',
       headers: {
@@ -297,7 +314,6 @@ export class GithubService {
     name: string | null;
     email: string | null;
   }> {
-
     if (!(await fs.pathExists(this.mainGitConfig))) {
       return {
         name: null,
@@ -305,29 +321,16 @@ export class GithubService {
       };
     }
 
+    const content = await fs.readFile(this.mainGitConfig, 'utf-8');
 
-    const content = await fs.readFile(
-      this.mainGitConfig,
-      'utf-8'
-    );
+    const nameMatch = content.match(/name\s*=\s*(.*)/);
 
-
-    const nameMatch =
-      content.match(/name\s*=\s*(.*)/);
-
-
-    const emailMatch =
-      content.match(/email\s*=\s*(.*)/);
-
+    const emailMatch = content.match(/email\s*=\s*(.*)/);
 
     return {
-      name: nameMatch
-        ? nameMatch[1].trim()
-        : null,
+      name: nameMatch ? nameMatch[1].trim() : null,
 
-      email: emailMatch
-        ? emailMatch[1].trim()
-        : null,
+      email: emailMatch ? emailMatch[1].trim() : null,
     };
   }
 }

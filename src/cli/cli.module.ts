@@ -8,7 +8,14 @@ import { AccountModule } from '../account/account.module';
 import { DoctorModule } from '../doctor/doctor.module';
 
 @Module({
-  imports: [SshModule, GithubModule, TokenModule, GitModule, AccountModule, DoctorModule],
+  imports: [
+    SshModule,
+    GithubModule,
+    TokenModule,
+    GitModule,
+    AccountModule,
+    DoctorModule,
+  ],
   providers: [CliService],
 })
 export class CliModule {}
