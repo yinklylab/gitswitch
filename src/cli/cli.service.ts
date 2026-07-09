@@ -8,6 +8,7 @@ import { GithubService } from '../github/github.service';
 import { TokenService } from '../token/token.service';
 import { GitService } from '../git/git.service';
 import { AccountService } from '../account/account.service';
+import { DoctorService } from '../doctor/doctor.service';
 
 
 @Injectable()
@@ -18,6 +19,7 @@ export class CliService {
     private readonly tokenService: TokenService,
     private readonly gitService: GitService,
     private readonly accountService: AccountService,
+    private readonly doctorService: DoctorService,
   ) { }
 
   async runSetup() {
@@ -290,41 +292,95 @@ export class CliService {
     console.log(chalk.white('   Easily manage and switch between your personal and work GitHub accounts.\n'));
 
     const choices = [
+      new inquirer.Separator(
+        chalk.gray('\n── Daily Workflow ──')
+      ),
+
       {
-        name: chalk.green.bold('⚙️  Setup New Account') + chalk.dim(' - Run the initial account setup wizard.'),
-        value: 'setup'
+        name:
+          chalk.blue.bold('👤  Current Profile') +
+          chalk.dim(' - Show active account, branch and remote.'),
+        value: 'current',
       },
+
       {
-        name: chalk.blue.bold('📋  List Accounts') + chalk.dim(' - See all currently configured GitHub profiles.'),
-        value: 'list'
+        name:
+          chalk.green.bold('📦  Clone Repository') +
+          chalk.dim(' - Clone using a GitSwitch account.'),
+        value: 'clone',
       },
+
       {
-        name: chalk.magenta.bold('🔄  Switch Account') + chalk.dim(' - Change your active global Git user.'),
-        value: 'switch'
+        name:
+          chalk.green.bold('🚀  Push Code') +
+          chalk.dim(' - Push using a selected account.'),
+        value: 'push',
       },
+
       {
-        name: chalk.red.bold('🗑️  Delete Account') + chalk.dim(' - Remove an account configuration from Git Switch.'),
-        value: 'delete'
-      },
-      {
-        name: chalk.yellow.bold('✔️  Verify Account') + chalk.dim(' - Check if a username or token is valid on GitHub.'),
-        value: 'verify'
-      },
-      {
-        name: chalk.cyan.bold('👤  Current Account') + chalk.dim(' - Show active GitSwitch profile.'),
-        value: 'current'
-      },
-      {
-        name: chalk.cyan.bold('🚀  Workflow Guide') + chalk.dim(' - Learn how to use GitSwitch.'),
-        value: 'guide',
-      },
-      {
-        name: chalk.blue.bold('🔗  Switch Remote') + chalk.dim(' - Change repository GitHub identity.'),
+        name:
+          chalk.magenta.bold('🔗  Switch Remote') +
+          chalk.dim(' - Change repository GitHub identity.'),
         value: 'remote',
       },
+
+
+      new inquirer.Separator(
+        chalk.gray('\n── Account Management ──')
+      ),
+
       {
-        name: chalk.green.bold('🚀  Push Code') + chalk.dim(' - Push using a GitSwitch account.'),
-        value: 'push',
+        name:
+          chalk.green.bold('⚙️  Setup Account') +
+          chalk.dim(' - Configure a new GitHub profile.'),
+        value: 'setup',
+      },
+
+      {
+        name:
+          chalk.magenta.bold('🔄  Switch Account') +
+          chalk.dim(' - Change active global Git identity.'),
+        value: 'switch',
+      },
+
+      {
+        name:
+          chalk.blue.bold('📋  List Accounts') +
+          chalk.dim(' - View configured profiles.'),
+        value: 'list',
+      },
+
+      {
+        name:
+          chalk.yellow.bold('✔️  Verify Account') +
+          chalk.dim(' - Validate GitHub credentials.'),
+        value: 'verify',
+      },
+
+      {
+        name:
+          chalk.red.bold('🗑️  Delete Account') +
+          chalk.dim(' - Remove a GitSwitch profile.'),
+        value: 'delete',
+      },
+
+
+      new inquirer.Separator(
+        chalk.gray('\n── Tools ──')
+      ),
+
+      {
+        name:
+          chalk.yellow.bold('🩺  Doctor') +
+          chalk.dim(' - Diagnose GitSwitch problems.'),
+        value: 'doctor',
+      },
+
+      {
+        name:
+          chalk.cyan.bold('📖  Workflow Guide') +
+          chalk.dim(' - Learn GitSwitch commands.'),
+        value: 'guide',
       },
     ];
 
@@ -393,6 +449,24 @@ export class CliService {
           }
         ]);
         await this.pushWithAccount(pushAccount);
+        break;
+      case 'clone':
+        const { account, repo } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'account',
+            message: 'Account name:',
+          },
+          {
+            type: 'input',
+            name: 'repo',
+            message: 'Repository URL:',
+          },
+        ]);
+        await this.cloneWithAccount(account, repo);
+        break;
+      case 'doctor':
+        await this.doctor();
         break;
       case 'verify':
         const { username, token } = await inquirer.prompt([
@@ -831,8 +905,8 @@ export class CliService {
 
 
 
-    let branch =
-      currentBranch;
+    let branch: string | undefined =
+      currentBranch ?? undefined;
 
 
     if (
@@ -871,5 +945,80 @@ export class CliService {
         `\n🎉 Successfully pushed '${branch}' using '${accountName}'\n`
       )
     );
+  }
+
+  async cloneWithAccount(
+    accountName: string,
+    repoUrl: string,
+  ) {
+
+
+    console.log(
+      chalk.cyan(
+        `\n📦 Cloning with '${accountName}'...\n`
+      )
+    );
+
+
+    const account =
+      await this.accountService.getAccount(
+        accountName
+      );
+
+
+
+    if (!account) {
+
+
+      console.log(
+        chalk.red(
+          `❌ Account '${accountName}' does not exist.`
+        )
+      );
+
+
+      console.log(
+        chalk.gray(
+          'Run: gitswitch setup'
+        )
+      );
+
+
+      return;
+    }
+
+
+
+    const sshUrl =
+      this.gitService.convertRemoteUrl(
+        repoUrl,
+        account.hostAlias,
+      );
+
+
+
+    console.log(
+      chalk.gray(
+        sshUrl
+      )
+    );
+
+
+
+    await this.gitService.clone(
+      sshUrl
+    );
+
+    console.log(
+      chalk.greenBright(
+        `\n🎉 Repository cloned using '${accountName}'\n`
+      )
+    );
+  }
+
+  async doctor() {
+
+    await this.doctorService.run();
+
   }
 }

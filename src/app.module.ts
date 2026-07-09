@@ -6,9 +6,10 @@ import { SshModule } from './ssh/ssh.module';
 import { CliModule } from './cli/cli.module';
 import { GitModule } from './git/git.module';
 import { AccountModule } from './account/account.module';
+import { DoctorModule } from './doctor/doctor.module';
 
 @Module({
-  imports: [TokenModule, GithubModule, SshModule, CliModule, GitModule, AccountModule],
+  imports: [TokenModule, GithubModule, SshModule, CliModule, GitModule, AccountModule, DoctorModule],
   providers: [AppService],
 })
 export class AppModule {}

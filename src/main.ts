@@ -113,9 +113,40 @@ async function bootstrap() {
             account,
             branch,
           );
-
         },
       );
+
+    program
+      .command(
+        'clone <account> <repo>'
+      )
+      .description(
+        'Clone repository using a GitSwitch account'
+      )
+      .action(
+        async (
+          account: string,
+          repo: string,
+        ) => {
+
+
+          await cliService.cloneWithAccount(
+            account,
+            repo,
+          );
+        },
+      );
+
+    program
+      .command('doctor')
+      .description(
+        'Run GitSwitch health diagnostics'
+      )
+      .action(async () => {
+
+        await cliService.doctor();
+
+      });
 
 
     // 👇 DEFAULT COMMAND MUST BE LAST

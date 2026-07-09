@@ -43,6 +43,7 @@
     "commander": "^14.0.1",
     "figlet": "^1.9.3",
     "fs-extra": "^11.3.2",
+    "gitswitch": "^0.2.3",
     "inquirer": "^8.2.7",
     "keytar": "^7.9.0",
     "proper-lockfile": "^4.1.2",

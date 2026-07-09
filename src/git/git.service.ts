@@ -166,65 +166,90 @@ export class GitService {
   }
 
   convertRemoteUrl(
-    currentRemote: string,
+    remoteUrl: string,
     hostAlias: string,
   ): string {
 
-    // SSH format:
-    // git@github.com:user/repo.git
+    let converted = remoteUrl;
+
+
+    // HTTPS
+    // https://github.com/user/project
 
     if (
-      currentRemote.startsWith(
-        'git@github.com:'
-      )
-    ) {
-
-      return currentRemote.replace(
-        'git@github.com:',
-        `git@${hostAlias}:`,
-      );
-
-    }
-
-
-    // HTTPS format:
-    // https://github.com/user/repo.git
-
-    if (
-      currentRemote.startsWith(
+      remoteUrl.startsWith(
         'https://github.com/'
       )
     ) {
 
       const repoPath =
-        currentRemote.replace(
+        remoteUrl.replace(
           'https://github.com/',
           '',
         );
 
 
-      return `git@${hostAlias}:${repoPath}`;
+      converted =
+        `git@${hostAlias}:${repoPath}`;
 
     }
 
 
-    // already using alias
-    // git@github-work:user/repo.git
 
-    if (
-      currentRemote.startsWith('git@')
+    // Default SSH
+    // git@github.com:user/project.git
+
+    else if (
+      remoteUrl.startsWith(
+        'git@github.com:'
+      )
+    ) {
+
+      converted =
+        remoteUrl.replace(
+          'git@github.com:',
+          `git@${hostAlias}:`,
+        );
+
+    }
+
+
+
+    // Existing alias
+    // git@github-old:user/project.git
+
+    else if (
+      remoteUrl.startsWith(
+        'git@'
+      )
     ) {
 
       const repoPath =
-        currentRemote.split(':')[1];
+        remoteUrl.split(':')[1];
 
 
-      return `git@${hostAlias}:${repoPath}`;
+      converted =
+        `git@${hostAlias}:${repoPath}`;
+
     }
 
 
-    throw new Error(
-      `Unsupported remote format: ${currentRemote}`
-    );
+    else {
+
+      throw new Error(
+        `Unsupported GitHub URL: ${remoteUrl}`
+      );
+
+    }
+
+    if (
+      !converted.endsWith('.git')
+    ) {
+
+      converted += '.git';
+
+    }
+
+    return converted;
   }
 }
