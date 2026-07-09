@@ -3,6 +3,6 @@ import { SshService } from './ssh.service';
 
 @Module({
   providers: [SshService],
-  exports: [SshService]
+  exports: [SshService],
 })
 export class SshModule {}

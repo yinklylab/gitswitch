@@ -1,6 +1,6 @@
 {
   "name": "@yinklylab.dev/gitswitch",
-  "version": "1.0.1",
+  "version": "1.1.2",
   "description": "A NestJS-powered CLI for managing multiple GitHub accounts effortlessly.",
   "author": "Oluyinka Abubakar",
   "license": "MIT",

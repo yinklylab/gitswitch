@@ -14,24 +14,29 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
   });
+
   const cliService = app.get(CliService);
 
   try {
     program
       .name(CLI_NAME)
-      .description('A CLI tool to manage and switch between multiple GitHub accounts.')
+      .description(
+        'A CLI tool to manage and switch between multiple GitHub accounts.',
+      )
       .version(APP_VERSION, '-v, --version');
 
     program
+      .command('current')
+      .description('Show active GitSwitch account')
       .action(async () => {
-        await cliService.showMainMenu(); 
+        await cliService.currentAccount();
       });
 
     program
-      .command('setup') 
+      .command('setup')
       .description('Run GitHub account setup wizard')
       .action(async () => {
-        await cliService.runSetup(); 
+        await cliService.runSetup();
       });
 
     program
@@ -61,18 +66,56 @@ async function bootstrap() {
       .action(async (username: string, token: string) => {
         await cliService.verifyAccount(username, token);
       });
-      
-    await program.parseAsync(process.argv);
 
+    program
+      .command('guide')
+      .description('Show GitSwitch workflow guide')
+      .action(async () => {
+        await cliService.showGuide();
+      });
+
+    program
+      .command('remote <account>')
+      .description('Switch repository remote to a GitSwitch account')
+      .action(async (account: string) => {
+        await cliService.switchRemote(account);
+      });
+
+    program
+      .command('push <account> [branch]')
+      .description('Push repository using a GitSwitch account')
+      .action(async (account: string, branch?: string) => {
+        await cliService.pushWithAccount(account, branch);
+      });
+
+    program
+      .command('clone <account> <repo>')
+      .description('Clone repository using a GitSwitch account')
+      .action(async (account: string, repo: string) => {
+        await cliService.cloneWithAccount(account, repo);
+      });
+
+    program
+      .command('doctor')
+      .description('Run GitSwitch health diagnostics')
+      .action(async () => {
+        await cliService.doctor();
+      });
+
+    // 👇 DEFAULT COMMAND MUST BE LAST
+    program.action(async () => {
+      await cliService.showMainMenu();
+    });
+
+    await program.parseAsync(process.argv);
   } catch (err: any) {
     console.error(chalk.red(`\n❌ Error: ${err.message}`));
-    
+
     if (process.env.DEBUG) {
       console.error(chalk.gray(err.stack));
     }
-    
-    process.exitCode = 1; 
 
+    process.exitCode = 1;
   } finally {
     await app.close();
   }
