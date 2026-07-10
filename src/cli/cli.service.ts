@@ -47,6 +47,10 @@ export class CliService {
       device.interval,
     );
 
+    await this.tokenService.saveToken(profileName, token);
+
+    console.log(chalk.green('🔐 GitHub token stored securely'));
+
     //
     // Get GitHub user
     //
