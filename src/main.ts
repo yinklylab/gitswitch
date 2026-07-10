@@ -102,6 +102,13 @@ async function bootstrap() {
         await cliService.doctor();
       });
 
+    program
+      .command('login-test')
+      .description('Test GitHub login')
+      .action(async () => {
+        await cliService.testGithubLogin();
+      });
+
     // 👇 DEFAULT COMMAND MUST BE LAST
     program.action(async () => {
       await cliService.showMainMenu();

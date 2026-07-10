@@ -155,11 +155,15 @@ export class GithubService {
     }
   }
 
-  async setupGitConfig(accountName: string, email: string): Promise<void> {
-    const gitConfigPath = path.join(os.homedir(), `.gitconfig-${accountName}`);
+  async setupGitConfig(
+    profileName: string,
+    name: string,
+    email: string,
+  ): Promise<void> {
+    const gitConfigPath = path.join(os.homedir(), `.gitconfig-${profileName}`);
     const gitConfigContent = `
     [user]
-      name = ${accountName}
+      name = ${name}
       email = ${email}
     `;
 

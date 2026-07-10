@@ -6,6 +6,7 @@ import { TokenModule } from '../token/token.module';
 import { GitModule } from '../git/git.module';
 import { AccountModule } from '../account/account.module';
 import { DoctorModule } from '../doctor/doctor.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DoctorModule } from '../doctor/doctor.module';
     GitModule,
     AccountModule,
     DoctorModule,
+    AuthModule,
   ],
   providers: [CliService],
 })

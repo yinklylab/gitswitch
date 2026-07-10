@@ -9,6 +9,7 @@ import { TokenService } from '../token/token.service';
 import { GitService } from '../git/git.service';
 import { AccountService } from '../account/account.service';
 import { DoctorService } from '../doctor/doctor.service';
+import { GithubAuthService } from '../auth/github-auth.service';
 
 @Injectable()
 export class CliService {
@@ -19,139 +20,69 @@ export class CliService {
     private readonly gitService: GitService,
     private readonly accountService: AccountService,
     private readonly doctorService: DoctorService,
+    private readonly githubAuthService: GithubAuthService,
   ) {}
 
   async runSetup() {
-    const { accountName, email, hostAlias } = await inquirer.prompt([
-      { name: 'accountName', message: 'Enter GitHub account name:' },
+    console.log(chalk.cyan.bold('\n🚀 Welcome to GitSwitch\n'));
+
+    const { profileName } = await inquirer.prompt([
       {
-        name: 'email',
-        message: 'Enter email associated with this GitHub account:',
-        validate: (input: string) => {
-          if (/\S+@\S+\.\S+/.test(input)) {
-            return true;
-          }
-          return '❌ This does not look like a valid email address.';
-        },
-      },
-      {
-        name: 'hostAlias',
-        message: 'Enter a custom host alias (e.g., github-work):',
-        default: (answers: { accountName: string }) =>
-          `github-${answers.accountName}`,
+        type: 'input',
+        name: 'profileName',
+        message: 'Profile name (work, personal, client):',
+        validate: (input: string) =>
+          input.trim().length > 0 || 'Profile name is required.',
       },
     ]);
 
-    let token: string | null = await this.tokenService.getToken(accountName);
-    let verified = false;
+    //
+    // GitHub OAuth Login
+    //
 
-    if (token) {
-      console.log(chalk.green('🔐 Using saved GitHub token...'));
-      const verification = await this.githubService.verifyAccount(
-        accountName,
-        token,
-      );
-      if (verification.valid) {
-        verified = true;
-        console.log(
-          chalk.green(`✅ Verified saved token belongs to '${accountName}'.`),
-        );
-      } else {
-        console.log(
-          chalk.red(
-            '❌ Saved token is invalid or expired. It will be removed.',
-          ),
-        );
-        await this.tokenService.deleteToken(accountName);
-        token = null;
-      }
-    }
+    const device = await this.githubAuthService.startDeviceLogin();
 
-    if (!verified) {
-      const { hasToken } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'hasToken',
-          message: 'Do you have a GitHub Personal Access Token (PAT)?',
-          default: false,
-        },
-      ]);
+    const token = await this.githubAuthService.pollForToken(
+      device.device_code,
+      device.interval,
+    );
 
-      if (hasToken) {
-        const { tokenInput } = await inquirer.prompt([
-          {
-            type: 'password',
-            name: 'tokenInput',
-            message: 'Enter your GitHub Personal Access Token:',
-            mask: '*',
-          },
-        ]);
-        token = tokenInput.trim() || '';
+    //
+    // Get GitHub user
+    //
 
-        const verification = await this.githubService.verifyAccount(
-          accountName,
-          token as string,
-        );
-        if (token) {
-          if (verification.valid) {
-            console.log(
-              chalk.green(
-                '✅ Token verified and saved securely for future use.',
-              ),
-            );
-            await this.tokenService.saveToken(token, accountName);
-            verified = true;
-          } else {
-            console.log(
-              chalk.red(
-                '❌ Invalid token — not saved. Proceeding without token.',
-              ),
-            );
-            token = null;
-          }
-        } else {
-          console.log(
-            chalk.yellow('⚠️ Empty token provided. Proceeding without token.'),
-          );
-        }
-      } else {
-        const verification =
-          await this.githubService.verifyAccount(accountName);
-        if (verification.valid) {
-          console.log(
-            chalk.yellow(
-              '⚠️ No token provided — skipping GitHub verification.',
-            ),
-          );
-          console.log(chalk.green('✅ Username exists on GitHub.'));
-          verified = true;
-        } else {
-          console.error(
-            chalk.red(
-              '\n❌ Account verification failed. The username does not exist or a network error occurred. Aborting setup.',
-            ),
-          );
-          return;
-        }
-      }
-    }
+    const githubUser = await this.githubAuthService.getAuthenticatedUser(token);
 
-    if (!verified) {
-      console.error(
-        chalk.red('❌ Setup aborted because account could not be verified.'),
-      );
-      return;
-    }
+    const githubUsername = githubUser.username;
 
-    const keyPath = await this.sshService.generateKey(email, accountName);
-    await this.sshService.updateSshConfig(accountName, keyPath, hostAlias);
-    await this.githubService.setupGitConfig(accountName, email);
+    const gitName = githubUser.name;
+
+    const email = githubUser.email;
+
+    const hostAlias = `github-${profileName}`;
+
+    console.log(chalk.green(`\n✅ Connected to GitHub as ${githubUsername}`));
+
+    //
+    // Save token securely
+    //
+
+    await this.tokenService.saveToken(profileName, token);
+
+    const sshKeyName = `gitswitch_${profileName}`;
+
+    const keyPath = await this.sshService.generateKey(email, sshKeyName);
+    await this.sshService.updateSshConfig(profileName, keyPath, hostAlias);
+    await this.githubService.setupGitConfig(profileName, gitName, email);
 
     await this.accountService.saveAccount({
-      name: accountName,
+      name: profileName,
+      githubUsername,
+      displayName: gitName,
       email,
       hostAlias,
       sshKey: keyPath,
+      authType: 'oauth',
       createdAt: new Date().toISOString(),
     });
 
@@ -172,7 +103,7 @@ export class CliService {
         chalk.cyan('\n🔍 Checking if SSH key already exists on GitHub...'),
       );
       const keyExists = await this.githubService.keyExistsOnGithub(
-        accountName,
+        githubUsername,
         publicKey,
         token,
       );
@@ -198,52 +129,25 @@ export class CliService {
 
     console.log(
       chalk.greenBright(
-        `\n✅ Setup complete for ${accountName} (${hostAlias})\n`,
-      ),
-    );
-
-    console.log(
-      chalk.white(
-        "Here's your SSH public key — copy it and add it to GitHub:\n",
+        `\n✅ Setup complete for ${profileName} (${hostAlias})\n`,
       ),
     );
     console.log(
-      chalk.yellow.bold('──────────────────────────────────────────────'),
-    );
-    console.log(chalk.cyan(publicKey));
-    console.log(
-      chalk.yellow.bold('──────────────────────────────────────────────\n'),
-    );
+      chalk.greenBright(
+        `
+          🎉 GitSwitch setup complete
 
-    const copied = await this.sshService.copyPublicKeyToClipboard(accountName);
-    if (copied) {
-      console.log(
-        chalk.green(
-          '📋 Your SSH public key has been copied to your clipboard.',
-        ),
-      );
-      console.log('\n🔑 If you need to recopy later, navigate to ' + keyPath);
-    } else {
-      console.log(
-        chalk.yellow('⚠️ Could not copy key to clipboard automatically.'),
-      );
-      console.log(chalk.white(`You can manually copy it from:`));
-      console.log(chalk.gray(publicKeyPath));
-    }
-    console.log('\n' + chalk.magenta.bold('👉 Next Steps:'));
-    console.log(
-      `${chalk.white('1️⃣ Go to')} ${chalk.blueBright('https://github.com/settings/keys')}`,
+          Profile: ${profileName}
+          GitHub: ${githubUsername}
+          SSH: ${hostAlias}
+
+          You can now use:
+
+          gitswitch clone ${profileName} <repo>
+          gitswitch push ${profileName}
+          `,
+      ),
     );
-    console.log(`${chalk.white('2️⃣ Click')} ${chalk.green('"New SSH key"')}`);
-    console.log(`${chalk.white('3️⃣ Paste the above key into the field')}`);
-    console.log(
-      `${chalk.white('4️⃣ Give it a recognizable title (e.g.,')} ${chalk.yellow(hostAlias)}${chalk.white(')')}`,
-    );
-    console.log(`${chalk.white('5️⃣ Click')} ${chalk.green('"Add SSH key"')}`);
-    console.log(
-      `\n${chalk.greenBright('🎉 You’re all set!')} ${chalk.white('Use your new identity via:')}`,
-    );
-    console.log(chalk.cyan(`git@${hostAlias}:<username>/<repo>.git\n`));
   }
 
   async listAccounts() {
@@ -493,7 +397,7 @@ export class CliService {
       case 'list':
         await this.listAccounts();
         break;
-      case 'switch':
+      case 'switch': {
         const { accountToSwitch } = await inquirer.prompt([
           {
             type: 'input',
@@ -507,7 +411,8 @@ export class CliService {
         ]);
         await this.switchAccount(accountToSwitch);
         break;
-      case 'delete':
+      }
+      case 'delete': {
         const { accountToDelete } = await inquirer.prompt([
           {
             type: 'input',
@@ -519,13 +424,14 @@ export class CliService {
         ]);
         await this.deleteAccount(accountToDelete);
         break;
+      }
       case 'current':
         await this.currentAccount();
         break;
       case 'guide':
         await this.showGuide();
         break;
-      case 'remote':
+      case 'remote': {
         const { remoteAccount } = await inquirer.prompt([
           {
             type: 'input',
@@ -535,7 +441,8 @@ export class CliService {
         ]);
         await this.switchRemote(remoteAccount);
         break;
-      case 'push':
+      }
+      case 'push': {
         const { pushAccount } = await inquirer.prompt([
           {
             type: 'input',
@@ -545,7 +452,8 @@ export class CliService {
         ]);
         await this.pushWithAccount(pushAccount);
         break;
-      case 'clone':
+      }
+      case 'clone': {
         const { account, repo } = await inquirer.prompt([
           {
             type: 'input',
@@ -560,10 +468,11 @@ export class CliService {
         ]);
         await this.cloneWithAccount(account, repo);
         break;
+      }
       case 'doctor':
         await this.doctor();
         break;
-      case 'verify':
+      case 'verify': {
         const { username, token } = await inquirer.prompt([
           {
             type: 'input',
@@ -582,6 +491,7 @@ export class CliService {
         ]);
         await this.verifyAccount(username, token);
         break;
+      }
       default:
         console.log(chalk.yellow('Command not recognized.'));
     }
@@ -834,5 +744,18 @@ export class CliService {
 
   async doctor() {
     await this.doctorService.run();
+  }
+
+  async testGithubLogin() {
+    const device = await this.githubAuthService.startDeviceLogin();
+
+    const token = await this.githubAuthService.pollForToken(
+      device.device_code,
+      device.interval,
+    );
+
+    const user = await this.githubAuthService.getAuthenticatedUser(token);
+
+    console.log(user);
   }
 }
