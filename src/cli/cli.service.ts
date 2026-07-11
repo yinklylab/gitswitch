@@ -102,33 +102,20 @@ export class CliService {
       return;
     }
 
-    if (token) {
-      console.log(
-        chalk.cyan('\n🔍 Checking if SSH key already exists on GitHub...'),
-      );
-      const keyExists = await this.githubService.keyExistsOnGithub(
-        githubUsername,
-        publicKey,
-        token,
-      );
+    console.log(chalk.cyan('\n☁️ Uploading SSH key to GitHub...'));
 
-      if (keyExists) {
-        console.log(
-          chalk.green(
-            '✅ SSH key already exists on your GitHub account — skipping upload.',
-          ),
-        );
-      } else {
-        console.log(chalk.yellow('📤 Uploading SSH key to GitHub...'));
-        await this.githubService.uploadKey(publicKey, token, hostAlias);
-        console.log(chalk.green('🚀 Successfully uploaded SSH key to GitHub!'));
-      }
+    const keyExists = await this.githubService.keyExistsOnGithub(
+      githubUsername,
+      publicKey,
+      token,
+    );
+
+    if (keyExists) {
+      console.log(chalk.green('✓ SSH key already exists on GitHub'));
     } else {
-      console.log(
-        chalk.yellow(
-          '\n🔑 No token provided — skipping GitHub key check/upload.',
-        ),
-      );
+      await this.githubService.uploadKey(publicKey, token, hostAlias);
+
+      console.log(chalk.green('✓ SSH key added to GitHub'));
     }
 
     console.log(
@@ -433,7 +420,7 @@ export class CliService {
         await this.currentAccount();
         break;
       case 'guide':
-        await this.showGuide();
+        this.showGuide();
         break;
       case 'remote': {
         const { remoteAccount } = await inquirer.prompt([
@@ -537,7 +524,7 @@ export class CliService {
     console.log();
   }
 
-  async showGuide() {
+  showGuide() {
     console.log(chalk.cyan.bold('\n🚀 ===GitSwitch Workflow Guide===\n'));
 
     console.log(chalk.green.bold('1️⃣  Setup a GitHub account'));

@@ -274,9 +274,9 @@ export class GithubService {
     token: string,
   ): Promise<boolean> {
     try {
-      const response = await axios.get(`${this.baseUrl}/user/keys`, {
+      const response = await axios.get('https://api.github.com/user/keys', {
         headers: {
-          Authorization: `token ${token}`,
+          Authorization: `Bearer ${token}`,
           'User-Agent': 'GitSwitch',
           Accept: 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
@@ -302,10 +302,11 @@ export class GithubService {
     const response = await fetch('https://api.github.com/user/keys', {
       method: 'POST',
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ title, key: publicKey }),
+      body: JSON.stringify({ title: `GitSwitch - ${title}`, key: publicKey }),
     });
 
     if (!response.ok) {

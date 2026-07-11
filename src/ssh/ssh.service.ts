@@ -115,7 +115,7 @@ export class SshService {
     return (await fs.readFile(pubPath, 'utf8')).trim();
   }
 
-  async removeFromSshConfig(accountName: string): Promise<void> {
+  async removeFromSshConfig(profileName: string): Promise<void> {
     const configPath = path.join(this.sshDir, 'config');
     if (!fs.existsSync(configPath)) {
       console.log(chalk.gray('ℹ️ No SSH config file found.'));
@@ -130,7 +130,7 @@ export class SshService {
       const content = await fs.promises.readFile(configPath, 'utf8');
 
       const regex = new RegExp(
-        `(# gitSwitch-${accountName}[\\s\\S]*?(?=\\n# gitSwitch-|$))|(Host github-${accountName}[\\s\\S]*?(?=\\nHost |$))`,
+        `(# gitSwitch-${profileName}[\\s\\S]*?(?=\\n# gitSwitch-|$))|(Host github-${profileName}[\\s\\S]*?(?=\\nHost |$))`,
         'g',
       );
 
@@ -138,10 +138,10 @@ export class SshService {
 
       if (newContent !== content) {
         await fs.promises.writeFile(configPath, newContent + '\n', 'utf8');
-        console.log(chalk.yellow(`🧹 Removed SSH config for ${accountName}.`));
+        console.log(chalk.yellow(`🧹 Removed SSH config for ${profileName}.`));
       } else {
         console.log(
-          chalk.gray(`ℹ️ No SSH config entry found for ${accountName}.`),
+          chalk.gray(`ℹ️ No SSH config entry found for ${profileName}.`),
         );
       }
     } catch (error) {
@@ -151,54 +151,45 @@ export class SshService {
     }
   }
 
-  async copyPublicKeyToClipboard(keyName: string): Promise<boolean> {
-    let pubPath = path.join(this.sshDir, `${keyName}.pub`);
-    if (!pubPath.endsWith('.pub')) pubPath += '.pub';
+  async deleteSSHKeys(profileName: string): Promise<boolean> {
+    const gitSwitchKey = path.join(this.sshDir, `gitswitch_${profileName}`);
 
-    if (!(await fs.pathExists(pubPath))) return false;
+    const legacyRsaKey = path.join(this.sshDir, `id_rsa_${profileName}`);
 
-    try {
-      if (process.platform === 'win32') {
-        await execAsync(`type "${pubPath}" | clip`);
-      } else if (process.platform === 'darwin') {
-        await execAsync(`pbcopy < "${pubPath}"`);
-      } else {
-        await execAsync(`xclip -selection clipboard < "${pubPath}"`);
-      }
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
+    const legacyKey = path.join(this.sshDir, profileName);
 
-  async deleteSSHKeys(accountName: string): Promise<boolean> {
-    const privateKeyPath = path.join(this.sshDir, `id_rsa_${accountName}`);
-    const publicKeyPath = `${privateKeyPath}.pub`;
-    const altPrivateKeyPath = path.join(this.sshDir, `${accountName}`);
-    const altPublicKeyPath = `${altPrivateKeyPath}.pub`;
+    const filesToDelete = [
+      gitSwitchKey,
+      `${gitSwitchKey}.pub`,
+
+      legacyRsaKey,
+      `${legacyRsaKey}.pub`,
+
+      legacyKey,
+      `${legacyKey}.pub`,
+    ];
 
     const deleted: string[] = [];
 
-    for (const file of [
-      privateKeyPath,
-      publicKeyPath,
-      altPrivateKeyPath,
-      altPublicKeyPath,
-    ]) {
+    for (const file of filesToDelete) {
       if (fs.existsSync(file)) {
         await fs.promises.unlink(file);
+
         deleted.push(file);
       }
     }
 
-    if (deleted.length > 0) {
-      console.log(chalk.yellow(`🗑️  Deleted SSH keys for ${accountName}:`));
-      deleted.forEach((f) => console.log(chalk.gray(`- ${f}`)));
+    if (deleted.length) {
+      console.log(chalk.yellow(`🗑️ Deleted SSH keys for ${profileName}:`));
+
+      deleted.forEach((file) => console.log(chalk.gray(`- ${file}`)));
+
       return true;
-    } else {
-      console.log(chalk.gray(`ℹ️  No SSH keys found for ${accountName}.`));
-      return false;
     }
+
+    console.log(chalk.gray(`ℹ️ No SSH keys found for ${profileName}.`));
+
+    return false;
   }
 
   private isSshInstalled(): boolean {
