@@ -67,28 +67,11 @@ export class CliService {
 
     console.log(chalk.green(`\n✅ Connected to GitHub as ${githubUsername}`));
 
-    //
-    // Save token securely
-    //
-
-    await this.tokenService.saveToken(profileName, token);
-
     const sshKeyName = `gitswitch_${profileName}`;
 
     const keyPath = await this.sshService.generateKey(email, sshKeyName);
     await this.sshService.updateSshConfig(profileName, keyPath, hostAlias);
     await this.githubService.setupGitConfig(profileName, gitName, email);
-
-    await this.accountService.saveAccount({
-      name: profileName,
-      githubUsername,
-      displayName: gitName,
-      email,
-      hostAlias,
-      sshKey: keyPath,
-      authType: 'oauth',
-      createdAt: new Date().toISOString(),
-    });
 
     const publicKeyPath = `${keyPath}.pub`;
     let publicKey = '';
@@ -118,27 +101,30 @@ export class CliService {
       console.log(chalk.green('✓ SSH key added to GitHub'));
     }
 
-    console.log(
-      chalk.greenBright(
-        `\n✅ Setup complete for ${profileName} (${hostAlias})\n`,
-      ),
-    );
-    console.log(
-      chalk.greenBright(
-        `
-          🎉 GitSwitch setup complete
+    await this.accountService.saveAccount({
+      profile: profileName,
+      githubUsername,
+      name: gitName,
+      email,
+      hostAlias,
+      sshKey: keyPath,
+      authType: 'oauth',
+      createdAt: new Date().toISOString(),
+    });
 
-          Profile: ${profileName}
-          GitHub: ${githubUsername}
-          SSH: ${hostAlias}
+    console.log(chalk.greenBright('\n🎉 GitSwitch setup complete\n'));
 
-          You can now use:
+    console.log(`${chalk.bold('Profile:')} ${profileName}`);
+    console.log(`${chalk.bold('GitHub:')} ${githubUsername}`);
+    console.log(`${chalk.bold('SSH:')} ${hostAlias}`);
 
-          gitswitch clone ${profileName} <repo>
-          gitswitch push ${profileName}
-          `,
-      ),
-    );
+    console.log(chalk.cyan('\nYou can now use:\n'));
+
+    console.log(chalk.white(`  gitswitch clone ${profileName} <repo>`));
+
+    console.log(chalk.white(`  gitswitch push ${profileName}`));
+
+    console.log();
   }
 
   async listAccounts() {

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-import { GitSwitchAccount } from './account.interface';
+import { GitSwitchAccount, StoredGitSwitchAccount } from './account.interface';
 
 @Injectable()
 export class AccountService {
@@ -29,7 +29,7 @@ export class AccountService {
 
     const accounts = await this.getAccounts();
 
-    accounts[account.name] = account;
+    accounts[account.profile] = account;
 
     await fs.writeJson(this.accountFile, accounts, {
       spaces: 2,
@@ -39,7 +39,16 @@ export class AccountService {
   async getAccounts(): Promise<Record<string, GitSwitchAccount>> {
     await this.ensureStorage();
 
-    return fs.readJson(this.accountFile);
+    const accounts: Record<string, StoredGitSwitchAccount> = await fs.readJson(
+      this.accountFile,
+    );
+
+    return Object.fromEntries(
+      Object.entries(accounts).map(([profileKey, account]) => [
+        profileKey,
+        this.normalizeAccount(profileKey, account),
+      ]),
+    );
   }
 
   async getAccount(name: string): Promise<GitSwitchAccount | null> {
@@ -56,5 +65,27 @@ export class AccountService {
     await fs.writeJson(this.accountFile, accounts, {
       spaces: 2,
     });
+  }
+
+  private normalizeAccount(
+    profileKey: string,
+    account: StoredGitSwitchAccount,
+  ): GitSwitchAccount {
+    const isLegacyAccount = !account.profile;
+
+    return {
+      profile: account.profile ?? profileKey,
+
+      githubUsername: account.githubUsername ?? profileKey,
+
+      name: isLegacyAccount
+        ? profileKey
+        : (account.name ?? account.githubUsername ?? profileKey),
+      email: account.email ?? '',
+      hostAlias: account.hostAlias ?? `github-${profileKey}`,
+      sshKey: account.sshKey ?? '',
+      authType: account.authType ?? 'token',
+      createdAt: account.createdAt ?? new Date().toISOString(),
+    };
   }
 }

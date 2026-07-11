@@ -53,11 +53,11 @@ export class SshService {
   }
 
   async updateSshConfig(
-    accountName: string,
+    profileName: string,
     keyPath: string,
     hostAlias: string,
   ) {
-    if (!accountName || !keyPath || !hostAlias) {
+    if (!profileName || !keyPath || !hostAlias) {
       throw new Error('Invalid SSH config parameters.');
     }
 
@@ -66,12 +66,18 @@ export class SshService {
 
     const normalizedKeyPath = this.normalizePath(keyPath);
 
+    const startMarker = `# >>> GitSwitch: ${profileName} >>>`;
+
+    const endMarker = `# <<< GitSwitch: ${profileName} <<<`;
+
     const configEntry = [
+      startMarker,
       `Host ${hostAlias}`,
       `  HostName github.com`,
       `  User git`,
       `  IdentityFile ${normalizedKeyPath.replace('.pub', '')}`,
       `  IdentitiesOnly yes`,
+      endMarker,
       '',
     ].join('\n');
 
@@ -86,17 +92,19 @@ export class SshService {
         ? await fs.readFile(configPath, 'utf-8')
         : '';
 
-      if (currentConfig.includes(`Host ${hostAlias}`)) {
+      if (currentConfig.includes(startMarker)) {
         console.log(
-          `⚠️ SSH config for '${hostAlias}' already exists — skipping.`,
+          chalk.yellow(
+            `⚠️ SSH config for profile '${profileName}' already exists — skipping.`,
+          ),
         );
         return;
       }
 
-      console.log(`🧩 Updating SSH config with alias '${hostAlias}'...`);
+      console.log(chalk.cyan(`🧩 Configuring SSH profile '${profileName}'...`));
       await fs.appendFile(configPath, configEntry);
 
-      console.log(`✅ SSH config updated at ${configPath}`);
+      console.log(chalk.green(`✓ SSH config updated at ${configPath}`));
     } catch (error) {
       console.error(chalk.red(`❌ Failed to update SSH config:`), error);
     } finally {
@@ -129,14 +137,22 @@ export class SshService {
 
       const content = await fs.promises.readFile(configPath, 'utf8');
 
-      const regex = new RegExp(
+      const markerRegex = new RegExp(
+        `# >>> GitSwitch: ${profileName} >>>[\\s\\S]*?# <<< GitSwitch: ${profileName} <<<\\n?`,
+        'g',
+      );
+
+      const legacyRegex = new RegExp(
         `(# gitSwitch-${profileName}[\\s\\S]*?(?=\\n# gitSwitch-|$))|(Host github-${profileName}[\\s\\S]*?(?=\\nHost |$))`,
         'g',
       );
 
-      const newContent = content.replace(regex, '').trim();
+      const newContent = content
+        .replace(markerRegex, '')
+        .replace(legacyRegex, '')
+        .trim();
 
-      if (newContent !== content) {
+      if (newContent !== content.trim()) {
         await fs.promises.writeFile(configPath, newContent + '\n', 'utf8');
         console.log(chalk.yellow(`🧹 Removed SSH config for ${profileName}.`));
       } else {
