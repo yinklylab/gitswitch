@@ -36,6 +36,15 @@ export class CliService {
       },
     ]);
 
+    const profile = profileName.trim().toLowerCase();
+    const existingAccount = await this.accountService.getAccount(profile);
+
+    if (existingAccount) {
+      console.log(chalk.yellow(`⚠️ Profile '${profile}' already exists.`));
+
+      return;
+    }
+
     //
     // GitHub OAuth Login
     //
@@ -47,7 +56,7 @@ export class CliService {
       device.interval,
     );
 
-    await this.tokenService.saveToken(profileName, token);
+    await this.tokenService.saveToken(profile, token);
 
     console.log(chalk.green('🔐 GitHub token stored securely'));
 
@@ -56,22 +65,18 @@ export class CliService {
     //
 
     const githubUser = await this.githubAuthService.getAuthenticatedUser(token);
-
     const githubUsername = githubUser.username;
-
     const gitName = githubUser.name;
-
     const email = githubUser.email;
-
-    const hostAlias = `github-${profileName}`;
+    const hostAlias = `github-${profile}`;
 
     console.log(chalk.green(`\n✅ Connected to GitHub as ${githubUsername}`));
 
-    const sshKeyName = `gitswitch_${profileName}`;
+    const sshKeyName = `gitswitch_${profile}`;
 
     const keyPath = await this.sshService.generateKey(email, sshKeyName);
-    await this.sshService.updateSshConfig(profileName, keyPath, hostAlias);
-    await this.githubService.setupGitConfig(profileName, gitName, email);
+    await this.sshService.updateSshConfig(profile, keyPath, hostAlias);
+    await this.githubService.setupGitConfig(profile, gitName, email);
 
     const publicKeyPath = `${keyPath}.pub`;
     let publicKey = '';
@@ -101,8 +106,36 @@ export class CliService {
       console.log(chalk.green('✓ SSH key added to GitHub'));
     }
 
+    console.log(chalk.cyan('\n🔍 Verifying SSH connection...'));
+
+    const sshConnection = await this.sshService.testConnection(hostAlias);
+
+    if (!sshConnection.connected) {
+      console.log(chalk.yellow('⚠️ SSH connection could not be verified.'));
+
+      if (process.env.DEBUG && sshConnection.message) {
+        console.log(chalk.gray(sshConnection.message));
+      }
+
+      return;
+    }
+
+    if (
+      sshConnection.username?.toLowerCase() !== githubUsername.toLowerCase()
+    ) {
+      console.log(
+        chalk.red(
+          `❌ SSH authenticated as '${sshConnection.username}', expected '${githubUsername}'.`,
+        ),
+      );
+
+      return;
+    }
+
+    console.log(chalk.green(`✓ SSH connected as ${sshConnection.username}`));
+
     await this.accountService.saveAccount({
-      profile: profileName,
+      profile,
       githubUsername,
       name: gitName,
       email,
@@ -117,6 +150,8 @@ export class CliService {
     console.log(`${chalk.bold('Profile:')} ${profileName}`);
     console.log(`${chalk.bold('GitHub:')} ${githubUsername}`);
     console.log(`${chalk.bold('SSH:')} ${hostAlias}`);
+
+    console.log(`${chalk.bold('SSH Status')} ${chalk.green('Connected ✓')}`);
 
     console.log(chalk.cyan('\nYou can now use:\n'));
 

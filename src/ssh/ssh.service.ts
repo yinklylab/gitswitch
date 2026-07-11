@@ -261,4 +261,49 @@ export class SshService {
       'SSH not installed. Please install it and rerun this command.',
     );
   }
+
+  async testConnection(hostAlias: string): Promise<{
+    connected: boolean;
+    username?: string;
+    message?: string;
+  }> {
+    try {
+      const { stdout, stderr } = await execAsync(
+        `ssh -T -o StrictHostKeyChecking=accept-new git@${hostAlias}`,
+      );
+
+      const output = `${stdout}\n${stderr}`.trim();
+
+      return this.parseSshConnectionResult(output);
+    } catch (error: any) {
+      const output = [error?.stdout, error?.stderr, error?.message]
+        .filter(Boolean)
+        .join('\n');
+
+      return this.parseSshConnectionResult(output);
+    }
+  }
+
+  private parseSshConnectionResult(output: string): {
+    connected: boolean;
+    username?: string;
+    message?: string;
+  } {
+    const match = output.match(
+      /Hi\s+([^!]+)!\s+You've successfully authenticated/i,
+    );
+
+    if (match) {
+      return {
+        connected: true,
+        username: match[1].trim(),
+        message: output,
+      };
+    }
+
+    return {
+      connected: false,
+      message: output,
+    };
+  }
 }
