@@ -23,7 +23,7 @@ export class CliService {
     private readonly githubAuthService: GithubAuthService,
   ) {}
 
-  async runSetup() {
+  async runOAuthSetup() {
     console.log(chalk.cyan.bold('\n🚀 Welcome to GitSwitch\n'));
 
     const { profileName } = await inquirer.prompt([
@@ -158,6 +158,261 @@ export class CliService {
     console.log(chalk.white(`  gitswitch clone ${profileName} <repo>`));
 
     console.log(chalk.white(`  gitswitch push ${profileName}`));
+
+    console.log();
+  }
+
+  async runManualSetup() {
+    console.log(chalk.yellow.bold('\n🛠️ GitSwitch Manual Setup\n'));
+
+    const { profileName, accountName, email, hostAlias } =
+      await inquirer.prompt([
+        {
+          name: 'profileName',
+          message: 'Profile name (work, personal, client):',
+          validate: (input: string) =>
+            input.trim().length > 0 || 'Profile name is required.',
+        },
+        {
+          name: 'accountName',
+          message: 'Enter GitHub username:',
+          validate: (input: string) =>
+            input.trim().length > 0 || 'GitHub username is required.',
+        },
+        {
+          name: 'email',
+          message: 'Enter email associated with this GitHub account:',
+          validate: (input: string) => {
+            if (/\S+@\S+\.\S+/.test(input)) {
+              return true;
+            }
+
+            return '❌ This does not look like a valid email address.';
+          },
+        },
+        {
+          name: 'hostAlias',
+          message: 'Enter a custom host alias:',
+          default: (answers: { profileName: string }) =>
+            `github-${answers.profileName.trim().toLowerCase()}`,
+        },
+      ]);
+
+    const profile = profileName.trim().toLowerCase();
+    const githubUsername = accountName.trim();
+
+    const existingAccount = await this.accountService.getAccount(profile);
+
+    if (existingAccount) {
+      console.log(chalk.yellow(`⚠️ Profile '${profile}' already exists.`));
+      return;
+    }
+
+    let token: string | null = await this.tokenService.getToken(profile);
+
+    let verified = false;
+
+    if (token) {
+      console.log(chalk.green('🔐 Using saved GitHub token...'));
+
+      const verification = await this.githubService.verifyAccount(
+        githubUsername,
+        token,
+      );
+
+      if (verification.valid) {
+        verified = true;
+
+        console.log(
+          chalk.green(
+            `✅ Verified saved token belongs to '${githubUsername}'.`,
+          ),
+        );
+      } else {
+        console.log(
+          chalk.red(
+            '❌ Saved token is invalid or expired. It will be removed.',
+          ),
+        );
+
+        await this.tokenService.deleteToken(profile);
+        token = null;
+      }
+    }
+
+    if (!verified) {
+      const { hasToken } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'hasToken',
+          message: 'Do you have a GitHub Personal Access Token (PAT)?',
+          default: false,
+        },
+      ]);
+
+      if (hasToken) {
+        const { tokenInput } = await inquirer.prompt([
+          {
+            type: 'password',
+            name: 'tokenInput',
+            message: 'Enter your GitHub Personal Access Token:',
+            mask: '*',
+          },
+        ]);
+
+        token = tokenInput.trim() || null;
+
+        if (token) {
+          const verification = await this.githubService.verifyAccount(
+            githubUsername,
+            token,
+          );
+
+          if (verification.valid) {
+            await this.tokenService.saveToken(profile, token);
+
+            verified = true;
+
+            console.log(chalk.green('✅ Token verified and saved securely.'));
+          } else {
+            console.log(chalk.red('❌ Invalid token — not saved.'));
+
+            token = null;
+          }
+        } else {
+          console.log(
+            chalk.yellow('⚠️ Empty token provided. Proceeding without token.'),
+          );
+        }
+      } else {
+        const verification =
+          await this.githubService.verifyAccount(githubUsername);
+
+        if (!verification.valid) {
+          console.error(
+            chalk.red('\n❌ Account verification failed. Aborting setup.'),
+          );
+
+          return;
+        }
+
+        verified = true;
+
+        console.log(
+          chalk.green(`✅ GitHub account '${githubUsername}' exists.`),
+        );
+      }
+    }
+
+    if (!verified) {
+      console.error(
+        chalk.red('❌ Setup aborted because account could not be verified.'),
+      );
+
+      return;
+    }
+
+    const sshKeyName = `gitswitch_${profile}`;
+
+    const keyPath = await this.sshService.generateKey(email, sshKeyName);
+
+    await this.sshService.updateSshConfig(profile, keyPath, hostAlias);
+
+    await this.githubService.setupGitConfig(profile, githubUsername, email);
+
+    const publicKeyPath = `${keyPath}.pub`;
+
+    let publicKey = '';
+
+    try {
+      publicKey = fs.readFileSync(publicKeyPath, 'utf8').trim();
+    } catch (err: any) {
+      console.error(
+        chalk.red('⚠️ Could not read public key file:'),
+        err.message,
+      );
+
+      return;
+    }
+
+    if (token) {
+      console.log(
+        chalk.cyan('\n🔍 Checking if SSH key already exists on GitHub...'),
+      );
+
+      const keyExists = await this.githubService.keyExistsOnGithub(
+        githubUsername,
+        publicKey,
+        token,
+      );
+
+      if (keyExists) {
+        console.log(chalk.green('✅ SSH key already exists on GitHub.'));
+      } else {
+        console.log(chalk.yellow('📤 Uploading SSH key to GitHub...'));
+
+        await this.githubService.uploadKey(publicKey, token, hostAlias);
+
+        console.log(chalk.green('🚀 Successfully uploaded SSH key to GitHub!'));
+      }
+    } else {
+      console.log(
+        chalk.yellow(
+          '\n🔑 No token provided — automatic SSH key upload skipped.',
+        ),
+      );
+
+      console.log(chalk.white("\nHere's your SSH public key:\n"));
+
+      console.log(
+        chalk.yellow.bold('──────────────────────────────────────────────'),
+      );
+
+      console.log(chalk.cyan(publicKey));
+
+      console.log(
+        chalk.yellow.bold('──────────────────────────────────────────────\n'),
+      );
+
+      const copied = await this.sshService.copyPublicKeyToClipboard(sshKeyName);
+
+      if (copied) {
+        console.log(chalk.green('📋 SSH public key copied to your clipboard.'));
+      } else {
+        console.log(chalk.yellow('⚠️ Could not copy SSH key automatically.'));
+
+        console.log(chalk.gray(`Copy it manually from: ${publicKeyPath}`));
+      }
+
+      console.log(
+        chalk.yellow(
+          '\nAdd the SSH key to your GitHub account before using this profile.',
+        ),
+      );
+    }
+
+    await this.accountService.saveAccount({
+      profile,
+      githubUsername,
+      name: githubUsername,
+      email,
+      hostAlias,
+      sshKey: keyPath,
+      authType: 'token',
+      createdAt: new Date().toISOString(),
+    });
+
+    console.log(chalk.greenBright('\n🎉 GitSwitch manual setup complete\n'));
+
+    console.log(`${chalk.bold('Profile:')} ${profile}`);
+    console.log(`${chalk.bold('GitHub:')} ${githubUsername}`);
+    console.log(`${chalk.bold('SSH Host:')} ${hostAlias}`);
+
+    console.log(
+      `${chalk.bold('Authentication:')} ${
+        token ? chalk.green('PAT ✓') : chalk.yellow('Manual SSH setup required')
+      }`,
+    );
 
     console.log();
   }
@@ -404,7 +659,7 @@ export class CliService {
 
     switch (command) {
       case 'setup':
-        await this.runSetup();
+        await this.runOAuthSetup();
         break;
       case 'list':
         await this.listAccounts();

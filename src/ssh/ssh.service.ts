@@ -306,4 +306,28 @@ export class SshService {
       message: output,
     };
   }
+
+  async copyPublicKeyToClipboard(keyName: string): Promise<boolean> {
+    let pubPath = path.join(this.sshDir, `${keyName}.pub`);
+    if (!pubPath.endsWith('.pub')) pubPath += '.pub';
+
+    if (!(await fs.pathExists(pubPath))) return false;
+
+    try {
+      if (process.platform === 'win32') {
+        await execAsync(`type "${pubPath}" | clip`);
+      } else if (process.platform === 'darwin') {
+        await execAsync(`pbcopy < "${pubPath}"`);
+      } else {
+        await execAsync(`xclip -selection clipboard < "${pubPath}"`);
+      }
+      return true;
+    } catch (err) {
+      console.error(
+        chalk.red('❌ Failed to copy public key to clipboard:'),
+        err,
+      );
+      return false;
+    }
+  }
 }

@@ -34,9 +34,15 @@ async function bootstrap() {
 
     program
       .command('setup')
-      .description('Run GitHub account setup wizard')
-      .action(async () => {
-        await cliService.runSetup();
+      .description('Configure a GitHub account')
+      .option('--manual', 'Use manual GitHub PAT setup')
+      .action(async (options: { manual?: boolean }) => {
+        if (options.manual) {
+          await cliService.runManualSetup();
+          return;
+        }
+
+        await cliService.runOAuthSetup();
       });
 
     program
@@ -70,8 +76,8 @@ async function bootstrap() {
     program
       .command('guide')
       .description('Show GitSwitch workflow guide')
-      .action(async () => {
-        await cliService.showGuide();
+      .action(() => {
+        cliService.showGuide();
       });
 
     program
