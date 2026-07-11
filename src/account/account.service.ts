@@ -51,16 +51,16 @@ export class AccountService {
     );
   }
 
-  async getAccount(name: string): Promise<GitSwitchAccount | null> {
+  async getAccount(profileName: string): Promise<GitSwitchAccount | null> {
     const accounts = await this.getAccounts();
 
-    return accounts[name] ?? null;
+    return accounts[profileName] ?? null;
   }
 
-  async deleteAccount(name: string) {
+  async deleteAccount(profileName: string) {
     const accounts = await this.getAccounts();
 
-    delete accounts[name];
+    delete accounts[profileName];
 
     await fs.writeJson(this.accountFile, accounts, {
       spaces: 2,
@@ -79,7 +79,7 @@ export class AccountService {
       githubUsername: account.githubUsername ?? profileKey,
 
       name: isLegacyAccount
-        ? profileKey
+        ? (account.name ?? profileKey)
         : (account.name ?? account.githubUsername ?? profileKey),
       email: account.email ?? '',
       hostAlias: account.hostAlias ?? `github-${profileKey}`,
@@ -87,5 +87,11 @@ export class AccountService {
       authType: account.authType ?? 'token',
       createdAt: account.createdAt ?? new Date().toISOString(),
     };
+  }
+
+  async listAccounts(): Promise<GitSwitchAccount[]> {
+    const accounts = await this.getAccounts();
+
+    return Object.values(accounts);
   }
 }

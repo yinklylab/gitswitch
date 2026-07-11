@@ -1,6 +1,6 @@
 export interface GitSwitchAccount {
   profile: string;
-  githubUsername: string;
+  githubUsername?: string;
   name: string;
   email: string;
   hostAlias: string;

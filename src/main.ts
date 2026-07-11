@@ -122,7 +122,7 @@ async function bootstrap() {
 
     await program.parseAsync(process.argv);
   } catch (err: any) {
-    console.error(chalk.red(`\n❌ Error: ${err.message}`));
+    console.error(chalk.red(`\nError: ${err.message}`));
 
     if (process.env.DEBUG) {
       console.error(chalk.gray(err.stack));

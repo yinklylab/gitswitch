@@ -37,15 +37,15 @@ export class SshService {
       return keyPath;
     }
 
-    console.log(`🔑 Generating SSH key for '${keyName}'...`);
+    console.log(`Generating SSH key for '${keyName}'...`);
     const command = `ssh-keygen -t rsa -b 4096 -C "${email}" -f "${keyPath}" -N ""`;
     try {
       await execAsync(command);
-      console.log(`✅ SSH key successfully created at: ${keyPath}`);
+      console.log(`SSH key successfully created at: ${keyPath}`);
       return keyPath;
     } catch (err) {
       console.error(
-        chalk.red('❌ Failed to generate SSH key:'),
+        chalk.red('Failed to generate SSH key:'),
         err.stderr || err.message,
       );
       throw err;
@@ -101,12 +101,12 @@ export class SshService {
         return;
       }
 
-      console.log(chalk.cyan(`🧩 Configuring SSH profile '${profileName}'...`));
+      console.log(chalk.cyan(`Configuring SSH profile '${profileName}'...`));
       await fs.appendFile(configPath, configEntry);
 
-      console.log(chalk.green(`✓ SSH config updated at ${configPath}`));
+      console.log(chalk.green(`SSH config updated at ${configPath}`));
     } catch (error) {
-      console.error(chalk.red(`❌ Failed to update SSH config:`), error);
+      console.error(chalk.red(`Failed to update SSH config:`), error);
     } finally {
       if (release) await release();
     }
@@ -126,7 +126,7 @@ export class SshService {
   async removeFromSshConfig(profileName: string): Promise<void> {
     const configPath = path.join(this.sshDir, 'config');
     if (!fs.existsSync(configPath)) {
-      console.log(chalk.gray('ℹ️ No SSH config file found.'));
+      console.log(chalk.gray('No SSH config file found.'));
       return;
     }
 
@@ -154,14 +154,14 @@ export class SshService {
 
       if (newContent !== content.trim()) {
         await fs.promises.writeFile(configPath, newContent + '\n', 'utf8');
-        console.log(chalk.yellow(`🧹 Removed SSH config for ${profileName}.`));
+        console.log(chalk.yellow(`Removed SSH config for ${profileName}.`));
       } else {
         console.log(
-          chalk.gray(`ℹ️ No SSH config entry found for ${profileName}.`),
+          chalk.gray(`No SSH config entry found for ${profileName}.`),
         );
       }
     } catch (error) {
-      console.error(chalk.red(`❌ Failed to update SSH config:`), error);
+      console.error(chalk.red(`Failed to update SSH config:`), error);
     } finally {
       if (release) await release();
     }
@@ -196,14 +196,14 @@ export class SshService {
     }
 
     if (deleted.length) {
-      console.log(chalk.yellow(`🗑️ Deleted SSH keys for ${profileName}:`));
+      console.log(chalk.yellow(`Deleted SSH keys for ${profileName}:`));
 
       deleted.forEach((file) => console.log(chalk.gray(`- ${file}`)));
 
       return true;
     }
 
-    console.log(chalk.gray(`ℹ️ No SSH keys found for ${profileName}.`));
+    console.log(chalk.gray(`No SSH keys found for ${profileName}.`));
 
     return false;
   }
@@ -217,7 +217,7 @@ export class SshService {
   private async ensureSshInstalled(): Promise<void> {
     if (this.isSshInstalled()) return;
 
-    console.log(chalk.yellow('⚠️  SSH utilities not found on this system.'));
+    console.log(chalk.yellow('SSH utilities not found on this system.'));
 
     if (process.platform === 'win32') {
       console.log(
@@ -229,7 +229,7 @@ export class SshService {
         await execAsync(
           'powershell -Command "Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0"',
         );
-        console.log(chalk.green('✅ OpenSSH installed successfully.'));
+        console.log(chalk.green('OpenSSH installed successfully.'));
         return;
       } catch (err: any) {
         const stderr =
@@ -237,14 +237,11 @@ export class SshService {
         if (stderr.includes('Access is denied')) {
           console.error(
             chalk.red(
-              '❌ Permission denied. Run your terminal as Administrator and try again.',
+              'Permission denied. Run your terminal as Administrator and try again.',
             ),
           );
         } else {
-          console.error(
-            chalk.red('❌ Failed to auto-install OpenSSH:'),
-            stderr,
-          );
+          console.error(chalk.red('Failed to auto-install OpenSSH:'), stderr);
         }
       }
     } else if (process.platform === 'linux') {
@@ -323,10 +320,7 @@ export class SshService {
       }
       return true;
     } catch (err) {
-      console.error(
-        chalk.red('❌ Failed to copy public key to clipboard:'),
-        err,
-      );
+      console.error(chalk.red('Failed to copy public key to clipboard:'), err);
       return false;
     }
   }

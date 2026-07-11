@@ -50,7 +50,7 @@ export class GitService {
       await this.git.addRemote('origin', remoteUrl);
     }
 
-    console.log(chalk.green(`✅ Remote updated: ${remoteUrl}`));
+    console.log(chalk.green(`Remote updated: ${remoteUrl}`));
   }
 
   async push(branch?: string): Promise<void> {
@@ -60,15 +60,15 @@ export class GitService {
       throw new Error('Unable to determine branch');
     }
 
-    console.log(chalk.cyan(`🚀 Pushing branch ${targetBranch}...`));
+    console.log(chalk.cyan(`Pushing branch ${targetBranch}...`));
 
     await this.git.push('origin', targetBranch);
 
-    console.log(chalk.green('✅ Push completed successfully'));
+    console.log(chalk.green('Push completed successfully'));
   }
 
   async clone(repoUrl: string, directory?: string): Promise<void> {
-    console.log(chalk.cyan('📦 Cloning repository...'));
+    console.log(chalk.cyan('Cloning repository...'));
 
     if (directory) {
       await this.git.clone(repoUrl, directory);
@@ -76,7 +76,7 @@ export class GitService {
       await this.git.clone(repoUrl);
     }
 
-    console.log(chalk.green('✅ Repository cloned'));
+    console.log(chalk.green('Repository cloned'));
   }
 
   async getRepositoryName(): Promise<string | null> {

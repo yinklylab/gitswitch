@@ -13,19 +13,19 @@ export class DoctorService {
   ) {}
 
   private success(message: string) {
-    console.log(chalk.green(`✓ ${message}`));
+    console.log(chalk.green(`${message}`));
   }
 
   private warning(message: string) {
-    console.log(chalk.yellow(`⚠ ${message}`));
+    console.log(chalk.yellow(`${message}`));
   }
 
   private error(message: string) {
-    console.log(chalk.red(`✗ ${message}`));
+    console.log(chalk.red(`${message}`));
   }
 
   async run() {
-    console.log(chalk.cyan.bold('\n🩺 GitSwitch Health Check\n'));
+    console.log(chalk.cyan.bold('\nGitSwitch Health Check\n'));
 
     this.checkGit();
 
@@ -37,7 +37,7 @@ export class DoctorService {
 
     await this.checkRepository();
 
-    console.log(chalk.greenBright('\n🚀 Health check completed\n'));
+    console.log(chalk.greenBright('\nHealth check completed\n'));
   }
 
   private checkGit() {
