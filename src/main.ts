@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { CliService } from './cli/cli.service';
+import { SetupService } from './setup/setup.service';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import pkg from '../package.json';
@@ -16,6 +17,7 @@ async function bootstrap() {
   });
 
   const cliService = app.get(CliService);
+  const setupService = app.get(SetupService);
 
   try {
     program
@@ -34,9 +36,15 @@ async function bootstrap() {
 
     program
       .command('setup')
-      .description('Run GitHub account setup wizard')
-      .action(async () => {
-        await cliService.runSetup();
+      .description('Configure a GitHub account')
+      .option('--manual', 'Use manual GitHub PAT setup')
+      .action(async (options: { manual?: boolean }) => {
+        if (options.manual) {
+          await setupService.runManualSetup();
+          return;
+        }
+
+        await setupService.runOAuthSetup();
       });
 
     program
@@ -70,8 +78,8 @@ async function bootstrap() {
     program
       .command('guide')
       .description('Show GitSwitch workflow guide')
-      .action(async () => {
-        await cliService.showGuide();
+      .action(() => {
+        cliService.showGuide();
       });
 
     program
@@ -109,7 +117,7 @@ async function bootstrap() {
 
     await program.parseAsync(process.argv);
   } catch (err: any) {
-    console.error(chalk.red(`\n❌ Error: ${err.message}`));
+    console.error(chalk.red(`\nError: ${err.message}`));
 
     if (process.env.DEBUG) {
       console.error(chalk.gray(err.stack));

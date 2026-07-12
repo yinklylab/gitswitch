@@ -6,12 +6,15 @@ import simpleGit from 'simple-git';
 import axios from 'axios';
 import chalk from 'chalk';
 import { TokenService } from '../token/token.service';
+import { AccountService } from '../account/account.service';
 
 @Injectable()
 export class GithubService {
-  constructor(private readonly tokenService: TokenService) {}
+  constructor(
+    private readonly tokenService: TokenService,
+    private readonly accountService: AccountService,
+  ) {}
   private homeDir = os.homedir();
-  private mainGitConfig = path.join(this.homeDir, '.gitconfig');
   private baseUrl =
     process.env.GITHUB_USERS_URL || 'https://api.github.com/users';
 
@@ -27,7 +30,7 @@ export class GithubService {
     if (!token) {
       console.log(
         chalk.yellow(
-          '⚠️ No GitHub token provided. Checking if username exists...',
+          'No GitHub token provided. Checking if username exists...',
         ),
       );
       try {
@@ -45,17 +48,15 @@ export class GithubService {
           response.status === 200 &&
           login?.toLowerCase() === username.toLowerCase()
         ) {
-          console.log(chalk.green(`✅ GitHub account '${username}' exists.`));
+          console.log(chalk.green(`GitHub account '${username}' exists.`));
           return { valid: true, hasToken: false };
         }
-        console.log(chalk.red(`❌ GitHub account '${username}' not found.`));
+        console.log(chalk.red(`GitHub account '${username}' not found.`));
         return { valid: false, reason: 'api_error', hasToken: false };
       } catch (error) {
         if (axios.isAxiosError(error)) {
           if (error.response?.status === 404) {
-            console.error(
-              chalk.red(`❌ GitHub account '${username}' not found.`),
-            );
+            console.error(chalk.red(`GitHub account '${username}' not found.`));
 
             return {
               valid: false,
@@ -65,7 +66,7 @@ export class GithubService {
           }
 
           if (error.response?.status === 403) {
-            console.log(chalk.yellow('⚠️ GitHub API rate limit reached.'));
+            console.log(chalk.yellow('GitHub API rate limit reached.'));
 
             console.log(
               chalk.yellow('Skipping online verification. Continuing setup...'),
@@ -81,7 +82,7 @@ export class GithubService {
           if (error.code === 'ENOTFOUND') {
             console.error(
               chalk.red(
-                '❌ Verification failed! Please check your internet connection',
+                'Verification failed! Please check your internet connection',
               ),
             );
 
@@ -96,7 +97,7 @@ export class GithubService {
         const errorMessage = (error as Error)?.message || String(error);
 
         console.error(
-          chalk.red(`⚠️ Error verifying GitHub account:`),
+          chalk.red(`Error verifying GitHub account:`),
           errorMessage,
         );
 
@@ -121,18 +122,18 @@ export class GithubService {
       const { login: authenticatedUser } = response.data || {};
       if (!authenticatedUser) {
         console.error(
-          chalk.red('⚠️ Received unexpected response from GitHub API /user.'),
+          chalk.red('Received unexpected response from GitHub API /user.'),
         );
         return { valid: false, reason: 'api_error', hasToken: true };
       }
 
       if (authenticatedUser.toLowerCase() === username.toLowerCase()) {
-        console.log(chalk.green(`✅ Verified token belongs to '${username}'.`));
+        console.log(chalk.green(`Verified token belongs to '${username}'.`));
         return { valid: true, authenticatedUser, hasToken: true };
       } else {
         console.log(
           chalk.red(
-            `❌ Token belongs to '${authenticatedUser}', not '${username}'. Please check the token.`,
+            `Token belongs to '${authenticatedUser}', not '${username}'. Please check the token.`,
           ),
         );
         return {
@@ -145,84 +146,79 @@ export class GithubService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          console.log(chalk.red('❌ Invalid or expired GitHub token.'));
+          console.log(chalk.red('Invalid or expired GitHub token.'));
           return { valid: false, reason: 'unauthorized', hasToken: true };
         }
       }
       const errorMessage = (error as Error)?.message || String(error);
-      console.log(chalk.red(`⚠️ Error verifying token: ${errorMessage}`));
+      console.log(chalk.red(`Error verifying token: ${errorMessage}`));
       return { valid: false, reason: 'network_error', hasToken: true };
     }
   }
 
-  async setupGitConfig(accountName: string, email: string): Promise<void> {
-    const gitConfigPath = path.join(os.homedir(), `.gitconfig-${accountName}`);
+  async setupGitConfig(
+    profileName: string,
+    name: string,
+    email: string,
+  ): Promise<void> {
+    const gitConfigPath = path.join(os.homedir(), `.gitconfig-${profileName}`);
     const gitConfigContent = `
     [user]
-      name = ${accountName}
+      name = ${name}
       email = ${email}
     `;
 
     await fs.writeFile(gitConfigPath, gitConfigContent);
   }
 
-  async listAccounts(): Promise<{ name: string; validToken: boolean }[]> {
-    const files = await fs.readdir(this.homeDir);
-    const accountFiles = files.filter((f) => f.startsWith('.gitconfig-'));
-    const accounts: { name: string; validToken: boolean }[] = [];
-
-    for (const file of accountFiles) {
-      const accountName = file.replace('.gitconfig-', '');
-      const token = await this.tokenService.getToken(accountName);
-      let verification = { valid: false };
-
-      if (token) {
-        verification = await this.verifyAccount(accountName, token);
-      }
-
-      accounts.push({ name: accountName, validToken: verification.valid });
-    }
-
-    return accounts;
-  }
-
   async deleteAccountConfig(accountName: string): Promise<boolean> {
     const filePath = path.join(this.homeDir, `.gitconfig-${accountName}`);
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
-      console.log(chalk.yellow(`🗑️  Deleted ${filePath}`));
+      console.log(chalk.yellow(`Deleted ${filePath}`));
       return true;
     } else {
-      console.log(chalk.gray(`ℹ️  No local config found for ${accountName}.`));
+      console.log(chalk.gray(`No local config found for ${accountName}.`));
       return false;
     }
   }
 
-  async switchAccount(username: string): Promise<void> {
-    const configPath = path.join(this.homeDir, `.gitconfig-${username}`);
+  async switchAccount(profileName: string): Promise<void> {
+    const account = await this.accountService.getAccount(profileName);
+
+    if (!account) {
+      console.log(chalk.red(`Profile '${profileName}' does not exist.`));
+      return;
+    }
+
+    const configPath = path.join(this.homeDir, `.gitconfig-${account.profile}`);
     const mainConfig = path.join(this.homeDir, '.gitconfig');
     const activeFile = path.join(this.homeDir, '.active-account');
 
     try {
       await fs.access(configPath);
     } catch {
-      console.log(chalk.red(`❌ Account '${username}' does not exist.`));
+      console.log(chalk.red(`Account '${profileName}' does not exist.`));
       return;
     }
 
-    const token = await this.tokenService.getToken(username);
+    const token = await this.tokenService.getToken(account.profile);
     if (!token) {
       console.log(
         chalk.yellow(
-          `⚠️ No token found for '${username}'. Proceeding without verification...`,
+          `No token found for '${account.githubUsername}'. Proceeding without verification...`,
         ),
       );
-    } else {
-      const isValid = await this.verifyAccount(username, token);
-      if (!isValid) {
+    } else if (account.githubUsername) {
+      const verification = await this.verifyAccount(
+        account.githubUsername,
+        token,
+      );
+
+      if (!verification.valid) {
         console.log(
           chalk.red(
-            `❌ Invalid or expired token for '${username}'. Aborting switch.`,
+            `Invalid or expired token for '${account.profile}'. Aborting switch.`,
           ),
         );
         return;
@@ -232,26 +228,34 @@ export class GithubService {
     try {
       await fs.copyFile(configPath, mainConfig);
     } catch (err) {
-      console.log(chalk.red(`❌ Failed to update .gitconfig: ${err.message}`));
+      console.log(chalk.red(`Failed to update .gitconfig: ${err.message}`));
       return;
     }
 
     try {
-      await fs.writeFile(activeFile, username, 'utf8');
+      await fs.writeFile(activeFile, profileName, 'utf8');
     } catch (err) {
-      console.log(
-        chalk.red(`⚠️ Could not record active account: ${err.message}`),
-      );
+      console.log(chalk.red(`Could not record active account: ${err.message}`));
+      return;
     }
 
-    console.log(chalk.green(`✅ Switched successfully to '${username}'.`));
+    console.log(
+      chalk.green(
+        `Switched successfully to '${profileName}' (${account.githubUsername}).`,
+      ),
+    );
   }
 
-  async getActiveAccount(): Promise<string | null> {
-    if (!(await fs.pathExists(this.mainGitConfig))) return null;
-    const content = await fs.readFile(this.mainGitConfig, 'utf-8');
-    const match = content.match(/name\s*=\s*(.*)/);
-    return match ? match[1].trim() : null;
+  async getActiveProfileName(): Promise<string | null> {
+    const activeFile = path.join(this.homeDir, '.active-account');
+
+    if (!(await fs.pathExists(activeFile))) {
+      return null;
+    }
+
+    const profileName = (await fs.readFile(activeFile, 'utf8')).trim();
+
+    return profileName || null;
   }
 
   async cloneRepoWithAccount(
@@ -270,9 +274,9 @@ export class GithubService {
     token: string,
   ): Promise<boolean> {
     try {
-      const response = await axios.get(`${this.baseUrl}/user/keys`, {
+      const response = await axios.get('https://api.github.com/user/keys', {
         headers: {
-          Authorization: `token ${token}`,
+          Authorization: `Bearer ${token}`,
           'User-Agent': 'GitSwitch',
           Accept: 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
@@ -283,7 +287,7 @@ export class GithubService {
       return keys.some((k) => k.key.trim() === publicKey.trim());
     } catch (err) {
       console.error(
-        chalk.red('⚠️ Could not verify SSH key on GitHub:'),
+        chalk.red('Could not verify SSH key on GitHub:'),
         err.response?.data || err.message,
       );
       return false;
@@ -298,39 +302,16 @@ export class GithubService {
     const response = await fetch('https://api.github.com/user/keys', {
       method: 'POST',
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ title, key: publicKey }),
+      body: JSON.stringify({ title: `GitSwitch - ${title}`, key: publicKey }),
     });
 
     if (!response.ok) {
       const err = await response.text();
       throw new Error(`GitHub key upload failed: ${err}`);
     }
-  }
-
-  async getActiveProfile(): Promise<{
-    name: string | null;
-    email: string | null;
-  }> {
-    if (!(await fs.pathExists(this.mainGitConfig))) {
-      return {
-        name: null,
-        email: null,
-      };
-    }
-
-    const content = await fs.readFile(this.mainGitConfig, 'utf-8');
-
-    const nameMatch = content.match(/name\s*=\s*(.*)/);
-
-    const emailMatch = content.match(/email\s*=\s*(.*)/);
-
-    return {
-      name: nameMatch ? nameMatch[1].trim() : null,
-
-      email: emailMatch ? emailMatch[1].trim() : null,
-    };
   }
 }

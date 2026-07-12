@@ -7,9 +7,21 @@ import { CliModule } from './cli/cli.module';
 import { GitModule } from './git/git.module';
 import { AccountModule } from './account/account.module';
 import { DoctorModule } from './doctor/doctor.module';
+import { AuthModule } from './auth/auth.module';
+import { SetupModule } from './setup/setup.module';
 
 @Module({
-  imports: [TokenModule, GithubModule, SshModule, CliModule, GitModule, AccountModule, DoctorModule],
+  imports: [
+    TokenModule,
+    GithubModule,
+    SshModule,
+    CliModule,
+    GitModule,
+    AccountModule,
+    DoctorModule,
+    AuthModule,
+    SetupModule,
+  ],
   providers: [AppService],
 })
 export class AppModule {}
