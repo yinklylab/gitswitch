@@ -84,10 +84,7 @@ export class CliService {
     try {
       publicKey = fs.readFileSync(publicKeyPath, 'utf8').trim();
     } catch (err) {
-      console.error(
-        chalk.red('⚠️  Could not read public key file:'),
-        err.message,
-      );
+      console.error(chalk.red('Could not read public key file:'), err.message);
       return;
     }
 
@@ -565,12 +562,12 @@ export class CliService {
   async showMainMenu() {
     console.log(
       chalk.yellow.bold(
-        figlet.textSync('Git Switch', { horizontalLayout: 'full' }),
+        figlet.textSync('GitSwitch', { horizontalLayout: 'full' }),
       ),
     );
 
     console.log(
-      chalk.cyan.bold('\nGit Switch: Multi-account GitHub Management'),
+      chalk.cyan.bold('\nGitSwitch: Multi-account GitHub Management'),
     );
     console.log(
       chalk.white(
@@ -583,28 +580,28 @@ export class CliService {
 
       {
         name:
-          chalk.blue.bold('👤  Current Profile') +
+          chalk.blue.bold('Current Profile') +
           chalk.dim(' - Show active account, branch and remote.'),
         value: 'current',
       },
 
       {
         name:
-          chalk.green.bold('📦  Clone Repository') +
+          chalk.green.bold('Clone Repository') +
           chalk.dim(' - Clone using a GitSwitch account.'),
         value: 'clone',
       },
 
       {
         name:
-          chalk.green.bold('🚀  Push Code') +
+          chalk.green.bold('Push Code') +
           chalk.dim(' - Push using a selected account.'),
         value: 'push',
       },
 
       {
         name:
-          chalk.magenta.bold('🔗  Switch Remote') +
+          chalk.magenta.bold('Switch Remote') +
           chalk.dim(' - Change repository GitHub identity.'),
         value: 'remote',
       },
@@ -613,35 +610,35 @@ export class CliService {
 
       {
         name:
-          chalk.green.bold('⚙️  Setup Account') +
+          chalk.green.bold('Setup Account') +
           chalk.dim(' - Configure a new GitHub profile.'),
         value: 'setup',
       },
 
       {
         name:
-          chalk.magenta.bold('🔄  Switch Account') +
+          chalk.magenta.bold('Switch Account') +
           chalk.dim(' - Change active global Git identity.'),
         value: 'switch',
       },
 
       {
         name:
-          chalk.blue.bold('📋  List Accounts') +
+          chalk.blue.bold('List Accounts') +
           chalk.dim(' - View configured profiles.'),
         value: 'list',
       },
 
       {
         name:
-          chalk.yellow.bold('✔️  Verify Account') +
+          chalk.yellow.bold('Verify Account') +
           chalk.dim(' - Validate GitHub credentials.'),
         value: 'verify',
       },
 
       {
         name:
-          chalk.red.bold('🗑️  Delete Account') +
+          chalk.red.bold('Delete Account') +
           chalk.dim(' - Remove a GitSwitch profile.'),
         value: 'delete',
       },
@@ -650,14 +647,14 @@ export class CliService {
 
       {
         name:
-          chalk.yellow.bold('🩺  Doctor') +
+          chalk.yellow.bold('Doctor') +
           chalk.dim(' - Diagnose GitSwitch problems.'),
         value: 'doctor',
       },
 
       {
         name:
-          chalk.cyan.bold('📖  Workflow Guide') +
+          chalk.cyan.bold('Workflow Guide') +
           chalk.dim(' - Learn GitSwitch commands.'),
         value: 'guide',
       },
@@ -667,7 +664,7 @@ export class CliService {
       {
         type: 'list',
         name: 'command',
-        message: chalk.hex('#FF8C00')('▶️  Select an action:'),
+        message: chalk.hex('#FF8C00')('▶ Select an action:'),
         choices: choices,
       },
     ]);
@@ -996,19 +993,5 @@ export class CliService {
 
   async doctor() {
     await this.doctorService.run();
-  }
-
-  async testGithubLogin() {
-    const device = await this.githubAuthService.startDeviceLogin();
-
-    const token = await this.githubAuthService.pollForToken(
-      device.device_code,
-      device.interval,
-      device.expires_in,
-    );
-
-    const user = await this.githubAuthService.getAuthenticatedUser(token);
-
-    console.log(user);
   }
 }

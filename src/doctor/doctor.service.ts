@@ -4,12 +4,14 @@ import { execSync } from 'child_process';
 import * as fs from 'fs-extra';
 import { GitService } from '../git/git.service';
 import { AccountService } from '../account/account.service';
+import { SshService } from '../ssh/ssh.service';
 
 @Injectable()
 export class DoctorService {
   constructor(
     private readonly gitService: GitService,
     private readonly accountService: AccountService,
+    private readonly sshService: SshService,
   ) {}
 
   private success(message: string) {
@@ -28,13 +30,10 @@ export class DoctorService {
     console.log(chalk.cyan.bold('\nGitSwitch Health Check\n'));
 
     this.checkGit();
-
     this.checkSSH();
-
-    this.checkGithub();
+    this.checkGitSwitchAliases();
 
     await this.checkAccounts();
-
     await this.checkRepository();
 
     console.log(chalk.greenBright('\nHealth check completed\n'));
@@ -62,15 +61,46 @@ export class DoctorService {
     }
   }
 
-  private checkGithub() {
-    try {
-      execSync('ssh -T git@github.com', {
-        stdio: 'ignore',
-      });
+  private async checkGitSwitchAliases() {
+    const accounts = await this.accountService.listAccounts();
 
-      this.success('GitHub SSH reachable');
-    } catch {
-      this.warning('GitHub SSH authentication not verified');
+    if (!accounts.length) {
+      this.warning('No GitSwitch SSH profiles to verify');
+      return;
+    }
+
+    for (const account of accounts) {
+      const connection = await this.sshService.testConnection(
+        account.hostAlias,
+      );
+
+      if (!connection.connected) {
+        this.error(
+          `${account.profile} SSH connection failed (${account.hostAlias})`,
+        );
+
+        if (process.env.DEBUG && connection.message) {
+          console.log(chalk.gray(connection.message));
+        }
+
+        continue;
+      }
+
+      if (
+        account.githubUsername &&
+        connection.username?.toLowerCase() !==
+          account.githubUsername.toLowerCase()
+      ) {
+        this.error(
+          `${account.profile} authenticated as '${connection.username}', expected '${account.githubUsername}'`,
+        );
+
+        continue;
+      }
+
+      this.success(
+        `${account.profile} SSH connected as ${connection.username}`,
+      );
     }
   }
 

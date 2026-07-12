@@ -1,87 +1,47 @@
-# GitSwitch — Effortless Multi-GitHub Account Workflow Manager (by Yinkly)
+# GitSwitch — Multi-GitHub Identity Setup Without the Configuration Headache
 
-**GitSwitch** is a powerful developer-focused CLI built with NestJS that helps developers manage multiple GitHub accounts and automate Git workflows on a single machine.
+**GitSwitch** is a developer-focused CLI by **Yinkly** that simplifies setting up and managing multiple GitHub identities on one machine.
 
-Whether you work across personal projects, company repositories, freelance clients, or open-source contributions — GitSwitch helps you switch identities, clone repositories, configure remotes, and push code using the correct GitHub account.
+Git and SSH already provide the building blocks for working with multiple identities.
 
-No more SSH confusion.
-No more wrong-account commits.
-No more GitHub identity headaches.
+GitSwitch automates the setup and connects those pieces into one developer workflow.
 
----
+**No manual SSH configuration.**
+**No copying public keys.**
+**No repeated Git configuration.**
+**No guessing which SSH identity your repository uses.**
 
-## ✨ Features
-
-### 👥 Account Management
-
-* Manage multiple GitHub accounts (personal, work, client, etc.)
-* Interactive account setup wizard
-* Automatic `.gitconfig` management
-* Automatic SSH key generation and configuration
-* Secure GitHub token storage using OS credential storage
-* GitHub username and token verification
-* Safe account removal
-
-### 🚀 Git Workflow Automation
-
-* Clone repositories with a selected GitHub account
-* Supports HTTPS and SSH GitHub clone URLs
-* Automatically converts repository URLs to account-specific SSH aliases
-* Switch repository remotes between GitHub identities
-* Push code using a specific GitHub account
-* Interactive branch selection during push
-* Direct branch push support
-
-### 🛠 Developer Tools
-
-* View current GitSwitch profile
-* Detect active repository, branch, and remote
-* Built-in workflow guide
-* Environment diagnostics with GitSwitch Doctor
-* Cross-platform support
-* Config locking to prevent corruption
+Set up your GitHub identities once. Use them across your repositories.
 
 ---
 
-## 🖥 Supported Platforms
+## ✨ Why GitSwitch?
 
-* Windows
-* macOS
-* Linux
+Managing multiple GitHub accounts is possible with Git, SSH, and GitHub's existing tools.
 
-Requirements:
+But setting everything up correctly can involve:
 
-* Node.js 18+
-* Git
-* SSH
+* Creating separate SSH keys
+* Uploading public keys to the correct GitHub accounts
+* Editing your SSH configuration
+* Creating separate Git configurations
+* Managing Git author names and emails
+* Rewriting repository remote URLs
+* Remembering which identity a repository should use
 
----
+GitSwitch brings this workflow into one CLI.
 
-## 📦 Installation
+The goal is not to replace Git, SSH, or GitHub CLI.
 
-Install globally with npm:
-
-```bash
-npm install -g @yinklylab.dev/gitswitch
-```
-
-Or with Yarn:
-
-```bash
-yarn global add @yinklylab.dev/gitswitch
-```
-
-Verify installation:
-
-```bash
-gitswitch -v
-```
+The goal is to automate the repetitive configuration around them.
 
 ---
 
-# 🚀 Quick Start
+## GitHub OAuth Setup
 
-## Setup a GitHub Account
+GitSwitch uses GitHub OAuth Device Flow to connect your GitHub account.
+
+Run:
 
 ```bash
 gitswitch setup
@@ -89,15 +49,54 @@ gitswitch setup
 
 GitSwitch will:
 
-* Configure Git username and email
-* Generate SSH keys
-* Update SSH configuration
-* Save account metadata
-* Verify GitHub credentials
+* Ask for a local profile name
+* Open GitHub authorization in your browser
+* Retrieve your authenticated GitHub identity
+* Retrieve your Git name and primary email
+* Store the GitHub token securely
+* Generate a dedicated SSH key
+* Upload the SSH public key to GitHub automatically
+* Configure your local SSH identity
+* Configure your Git identity
+* Verify the SSH connection
+* Save your GitSwitch profile
+
+No GitHub username entry.
+
+No Personal Access Token entry.
+
+No copying SSH keys.
+
+No opening GitHub SSH settings.
+
+Login once. GitSwitch handles the setup.
 
 ---
 
-## List Accounts
+## Multi-Account Profile Management
+
+Create profiles for your different GitHub identities.
+
+Example:
+
+```text
+personal (yinklylab)
+work (company-user)
+client (client-account)
+```
+
+GitSwitch helps you:
+
+* Manage personal, work, and client GitHub identities
+* Create named profiles
+* Configure profile-specific Git settings
+* Maintain isolated SSH identities
+* View your active GitSwitch profile
+* Switch between configured profiles
+* Remove local GitSwitch profiles safely
+* Preserve legacy GitSwitch configurations
+
+Run:
 
 ```bash
 gitswitch list
@@ -106,42 +105,109 @@ gitswitch list
 Example:
 
 ```text
-Configured Accounts
+Configured GitSwitch profiles
 
-✓ personal
-✓ work
-✓ client
+1. work ← active
+   GitHub: company-user
+   SSH: github-work
+   Auth: oauth
+
+2. personal
+   GitHub: yinklylab
+   SSH: github-personal
+   Auth: oauth
 ```
 
 ---
 
-## Switch Active Git Account
+## Automatic SSH Management
+
+GitSwitch creates a dedicated SSH key for each profile.
+
+Example:
+
+```text
+~/.ssh/
+
+gitswitch_work
+gitswitch_work.pub
+
+gitswitch_personal
+gitswitch_personal.pub
+```
+
+GitSwitch automatically configures SSH aliases:
+
+```text
+Host github-work
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/gitswitch_work
+  IdentitiesOnly yes
+```
+
+The public SSH key is uploaded directly to the authenticated GitHub account.
+
+GitSwitch then verifies the SSH connection before completing setup.
+
+Your private SSH keys remain on your machine.
+
+---
+
+## Switch GitHub Identities
+
+Switch to a configured profile:
 
 ```bash
-gitswitch use <account>
+gitswitch use work
+```
+
+GitSwitch:
+
+* Loads the selected profile
+* Retrieves its stored authentication token
+* Verifies the GitHub account
+* Activates the profile's Git configuration
+* Records the active GitSwitch profile
+
+Example:
+
+```text
+Verified token belongs to 'company-user'.
+
+Switched successfully to 'work' (company-user).
+```
+
+View your current profile:
+
+```bash
+gitswitch current
 ```
 
 Example:
 
-```bash
-gitswitch use personal
-```
+```text
+Current GitSwitch Profile
 
-GitSwitch automatically updates your active Git identity.
+Profile: work
+GitHub: company-user
+Name: Oluyinka
+Email: developer@company.com
+SSH Host: github-work
+Auth: oauth
+```
 
 ---
 
-# Repository Workflow
+## Clone With the Correct SSH Identity
 
-## Clone Repository with an Account
+Instead of manually constructing SSH aliases:
 
-Instead of manually configuring SSH:
-
-```bash
-git clone git@github-work:user/project.git
+```text
+git@github-work:user/project.git
 ```
 
-Use:
+Run:
 
 ```bash
 gitswitch clone work https://github.com/user/project.git
@@ -157,15 +223,17 @@ https://github.com/user/project.git
 git@github-work:user/project.git
 ```
 
-SSH URLs work too:
+SSH repository URLs are also supported:
 
 ```bash
 gitswitch clone work git@github.com:user/project.git
 ```
 
+GitSwitch uses the SSH identity associated with the selected profile.
+
 ---
 
-## Change Repository GitHub Account
+## Update a Repository Remote Identity
 
 For an existing repository:
 
@@ -185,20 +253,31 @@ After:
 git@github-work:user/project.git
 ```
 
+GitSwitch updates the repository's `origin` remote automatically.
+
+No manual `git remote set-url` command required.
+
 ---
 
-## Push Using an Account
+## Push Using a GitSwitch Profile
 
-Interactive mode:
+Push using a configured identity:
 
 ```bash
 gitswitch push work
 ```
 
+GitSwitch prepares the repository remote for the selected profile before pushing.
+
 Example:
 
 ```text
-Using account: work
+Preparing push with 'work'...
+
+Switching repository remote to 'work'...
+
+Remote updated:
+git@github-work:company/project.git
 
 Current branch:
 feature/payment
@@ -209,135 +288,17 @@ Push where?
   Different branch
 ```
 
-Direct branch push:
+Push directly to a branch:
 
 ```bash
 gitswitch push work main
 ```
 
----
-
-## Current Profile
-
-Check your active GitSwitch environment:
-
-```bash
-gitswitch current
-```
-
-Example:
-
-```text
-👤 Active GitSwitch Profile
-
-Account: work
-
-Email: developer@company.com
-
-SSH: github-work
-
-Repository: payment-api
-
-Branch: main
-
-Remote:
-git@github-work:company/payment-api.git
-```
+GitSwitch ensures the repository remote uses the selected profile's SSH identity before pushing.
 
 ---
 
-# 🩺 GitSwitch Doctor
-
-Run diagnostics:
-
-```bash
-gitswitch doctor
-```
-
-Checks:
-
-```text
-GitSwitch Health Check
-
-✓ Git installed
-✓ SSH installed
-✓ GitHub reachable
-✓ Account configuration exists
-✓ SSH keys exist
-✓ Repository detected
-✓ Remote configured
-
-Everything looks good 🚀
-```
-
----
-
-# 📖 Workflow Guide
-
-View GitSwitch usage instructions anytime:
-
-```bash
-gitswitch guide
-```
-
----
-
-# Commands
-
-| Command                            | Description                       |
-| ---------------------------------- | --------------------------------- |
-| `gitswitch setup`                  | Configure a GitHub account        |
-| `gitswitch list`                   | View configured accounts          |
-| `gitswitch use <account>`          | Switch active Git identity        |
-| `gitswitch current`                | Show current profile              |
-| `gitswitch clone <account> <repo>` | Clone repository with an account  |
-| `gitswitch remote <account>`       | Switch repository remote identity |
-| `gitswitch push <account>`         | Push using selected account       |
-| `gitswitch verify <username>`      | Verify GitHub credentials         |
-| `gitswitch doctor`                 | Run diagnostics                   |
-| `gitswitch guide`                  | Show workflow help                |
-| `gitswitch delete <account>`       | Remove an account                 |
-
----
-
-# Example Workflow
-
-```bash
-# Setup your accounts
-gitswitch setup
-
-# View accounts
-gitswitch list
-
-# Clone repository
-gitswitch clone work https://github.com/company/api.git
-
-# Check environment
-gitswitch current
-
-# Make changes
-git add .
-
-git commit -m "feat: add API"
-
-# Push safely
-gitswitch push work
-```
-
----
-
-# 🔐 Security
-
-GitSwitch:
-
-* Stores tokens using your operating system credential manager
-* Does not save plain-text GitHub tokens
-* Creates isolated SSH identities
-* Keeps account configurations separated
-
----
-
-# Troubleshooting
+# GitSwitch Doctor
 
 Run:
 
@@ -345,22 +306,264 @@ Run:
 gitswitch doctor
 ```
 
-to diagnose:
+GitSwitch Doctor checks:
 
-* SSH issues
-* Missing keys
-* Remote problems
-* Account configuration errors
+* Git installation
+* SSH installation
+* Configured GitSwitch profiles
+* SSH key availability
+* GitSwitch SSH aliases
+* GitHub SSH authentication identity
+* Current Git repository
+* Current branch
+* Repository remote
+
+Example:
+
+```text
+🩺 GitSwitch Health Check
+
+✓ Git installed
+✓ SSH installed
+✓ 2 GitSwitch profiles configured
+✓ work SSH key exists
+✓ personal SSH key exists
+✓ work SSH connected as company-user
+✓ personal SSH connected as yinklylab
+✓ Current directory is a Git repository
+✓ Current branch: develop
+✓ Remote configured: git@github-work:company/project.git
+
+Health check completed
+```
+
+GitSwitch Doctor verifies the SSH aliases created by GitSwitch instead of checking only the default `github.com` SSH connection.
+
+---
+
+# Installation
+
+Install globally with npm:
+
+```bash
+npm install -g @yinklylab.dev/gitswitch
+```
+
+Or with Yarn:
+
+```bash
+yarn global add @yinklylab.dev/gitswitch
+```
+
+Verify the installation:
+
+```bash
+gitswitch -v
+```
+
+---
+
+# Quick Start
+
+## 1. Connect your work GitHub account
+
+```bash
+gitswitch setup
+```
+
+Example:
+
+```text
+Welcome to GitSwitch
+
+? Profile name:
+> work
+
+Connect your GitHub account...
+
+Enter code: ABCD-1234
+
+Opening GitHub in your browser...
+
+Waiting for GitHub authorization...
+```
+
+After authorization:
+
+```text
+✓ GitHub authentication successful
+✓ Connected to GitHub as company-user
+✓ SSH key generated
+✓ SSH identity configured
+✓ SSH key uploaded to GitHub
+✓ SSH connection verified
+
+GitSwitch setup complete
+```
+
+---
+
+## 2. Connect another account
+
+Run:
+
+```bash
+gitswitch setup
+```
+
+Create a second profile:
+
+```text
+Profile:
+> personal
+
+GitHub:
+<https://github.com/yinklylab>
+
+✓ Personal profile configured
+```
+
+---
+
+## 3. View your profiles
+
+```bash
+gitswitch list
+```
+
+---
+
+## 4. Clone a repository
+
+```bash
+gitswitch clone work https://github.com/company/api.git
+```
+
+---
+
+## 5. Work normally
+
+```bash
+cd api
+
+git add .
+git commit -m "feat: add API"
+```
+
+---
+
+## 6. Push with the selected identity
+
+```bash
+gitswitch push work
+```
+
+---
+
+# Manual Setup
+
+Advanced users and existing GitSwitch users can use the manual PAT-based setup flow.
+
+Run:
+
+```bash
+gitswitch setup --manual
+```
+
+Manual setup supports:
+
+* GitHub username entry
+* Git author configuration
+* Personal Access Token authentication
+* Username verification
+* Manual SSH key fallback
+* Existing GitSwitch workflows
+
+OAuth setup is the recommended default.
+
+---
+
+# Commands
+
+| Command                               | Description                                        |
+| ------------------------------------- | -------------------------------------------------- |
+| `gitswitch setup`                     | Connect and configure a GitHub account using OAuth |
+| `gitswitch setup --manual`            | Configure an account using the manual flow         |
+| `gitswitch list`                      | View configured GitSwitch profiles                 |
+| `gitswitch use <profile>`             | Switch the active GitSwitch profile                |
+| `gitswitch current`                   | Show the current GitSwitch profile                 |
+| `gitswitch clone <profile> <repo>`    | Clone a repository using a profile                 |
+| `gitswitch remote <profile>`          | Update a repository remote identity                |
+| `gitswitch push <profile> [branch]`   | Push using a selected profile                      |
+| `gitswitch verify <username> [token]` | Verify GitHub credentials                          |
+| `gitswitch doctor`                    | Run GitSwitch diagnostics                          |
+| `gitswitch guide`                     | Show workflow help                                 |
+| `gitswitch delete <profile>`          | Remove a GitSwitch profile                         |
+
+---
+
+# Security
+
+GitSwitch is designed to keep GitHub credentials and SSH identities isolated.
+
+GitSwitch:
+
+* Uses GitHub OAuth Device Flow for default authentication
+* Does not ask for your GitHub password
+* Stores GitHub tokens using your operating system credential manager
+* Does not store GitHub tokens in plain-text configuration files
+* Keeps private SSH keys on your machine
+* Uploads only SSH public keys to GitHub
+* Creates isolated SSH identities for each profile
+* Uses `IdentitiesOnly yes` to reduce SSH identity conflicts
+
+Credential storage is handled by your operating system:
+
+```text
+macOS  → Keychain
+Windows → Credential Manager
+Linux  → Secret Service
+```
+
+---
+
+# Git Already Supports Multiple Identities
+
+Yes.
+
+Git supports multiple configuration files.
+
+SSH supports multiple identities.
+
+GitHub provides authentication tooling.
+
+GitSwitch does not replace these tools.
+
+GitSwitch automates the repetitive setup required to connect them into a multi-account workflow.
+
+Git and SSH provide the primitives.
+
+**GitSwitch turns the setup into a guided developer experience.**
+
+---
+
+# Contributing
+
+GitSwitch is open source.
+
+Contributions, bug reports, and feature ideas are welcome.
+
+If you already manage multiple GitHub identities using Git configuration, SSH aliases, shell scripts, or other tooling, your feedback is especially valuable.
 
 ---
 
 # Author
 
 **Oluyinka Abubakar**
-Developer, Innovator & Open Source Enthusiast
+Software Engineer, Developer Tool Builder & Open Source Enthusiast
 
-GitHub: https://github.com/lexico4real
-LinkedIn: https://linkedin.com/in/oluyinka-abubakar
+GitHub: <https://github.com/lexico4real>
+LinkedIn: <https://linkedin.com/in/oluyinka-abubakar>
 
 ---
 

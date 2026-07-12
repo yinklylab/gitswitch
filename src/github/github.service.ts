@@ -15,7 +15,6 @@ export class GithubService {
     private readonly accountService: AccountService,
   ) {}
   private homeDir = os.homedir();
-  private mainGitConfig = path.join(this.homeDir, '.gitconfig');
   private baseUrl =
     process.env.GITHUB_USERS_URL || 'https://api.github.com/users';
 
@@ -192,10 +191,7 @@ export class GithubService {
       return;
     }
 
-    const configPath = path.join(
-      this.homeDir,
-      `.gitconfig-${account.githubUsername}`,
-    );
+    const configPath = path.join(this.homeDir, `.gitconfig-${account.profile}`);
     const mainConfig = path.join(this.homeDir, '.gitconfig');
     const activeFile = path.join(this.homeDir, '.active-account');
 
@@ -206,22 +202,23 @@ export class GithubService {
       return;
     }
 
-    const token = await this.tokenService.getToken(account.githubUsername);
+    const token = await this.tokenService.getToken(account.profile);
     if (!token) {
       console.log(
         chalk.yellow(
           `No token found for '${account.githubUsername}'. Proceeding without verification...`,
         ),
       );
-    } else {
+    } else if (account.githubUsername) {
       const verification = await this.verifyAccount(
         account.githubUsername,
         token,
       );
+
       if (!verification.valid) {
         console.log(
           chalk.red(
-            `Invalid or expired token for '${account.githubUsername}'. Aborting switch.`,
+            `Invalid or expired token for '${account.profile}'. Aborting switch.`,
           ),
         );
         return;
@@ -239,6 +236,7 @@ export class GithubService {
       await fs.writeFile(activeFile, profileName, 'utf8');
     } catch (err) {
       console.log(chalk.red(`Could not record active account: ${err.message}`));
+      return;
     }
 
     console.log(
@@ -315,29 +313,5 @@ export class GithubService {
       const err = await response.text();
       throw new Error(`GitHub key upload failed: ${err}`);
     }
-  }
-
-  async getActiveProfile(): Promise<{
-    name: string | null;
-    email: string | null;
-  }> {
-    if (!(await fs.pathExists(this.mainGitConfig))) {
-      return {
-        name: null,
-        email: null,
-      };
-    }
-
-    const content = await fs.readFile(this.mainGitConfig, 'utf-8');
-
-    const nameMatch = content.match(/name\s*=\s*(.*)/);
-
-    const emailMatch = content.match(/email\s*=\s*(.*)/);
-
-    return {
-      name: nameMatch ? nameMatch[1].trim() : null,
-
-      email: emailMatch ? emailMatch[1].trim() : null,
-    };
   }
 }

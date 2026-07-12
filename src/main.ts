@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { CliService } from './cli/cli.service';
+import { SetupService } from './setup/setup.service';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import pkg from '../package.json';
@@ -16,6 +17,7 @@ async function bootstrap() {
   });
 
   const cliService = app.get(CliService);
+  const setupService = app.get(SetupService);
 
   try {
     program
@@ -38,11 +40,11 @@ async function bootstrap() {
       .option('--manual', 'Use manual GitHub PAT setup')
       .action(async (options: { manual?: boolean }) => {
         if (options.manual) {
-          await cliService.runManualSetup();
+          await setupService.runManualSetup();
           return;
         }
 
-        await cliService.runOAuthSetup();
+        await setupService.runOAuthSetup();
       });
 
     program
@@ -106,13 +108,6 @@ async function bootstrap() {
       .description('Run GitSwitch health diagnostics')
       .action(async () => {
         await cliService.doctor();
-      });
-
-    program
-      .command('login-test')
-      .description('Test GitHub login')
-      .action(async () => {
-        await cliService.testGithubLogin();
       });
 
     // 👇 DEFAULT COMMAND MUST BE LAST
