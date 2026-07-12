@@ -31,7 +31,7 @@ export class SshService {
     if (privateExists && publicExists) {
       console.log(
         chalk.yellow(
-          `⚠️ SSH key for '${keyName}' already exists — skipping generation.`,
+          `SSH key for '${keyName}' already exists — skipping generation.`,
         ),
       );
       return keyPath;
@@ -95,7 +95,7 @@ export class SshService {
       if (currentConfig.includes(startMarker)) {
         console.log(
           chalk.yellow(
-            `⚠️ SSH config for profile '${profileName}' already exists — skipping.`,
+            `SSH config for profile '${profileName}' already exists — skipping.`,
           ),
         );
         return;

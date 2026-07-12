@@ -18,9 +18,7 @@ export class GitService {
     const isRepo = await this.isGitRepository();
 
     if (!isRepo) {
-      console.log(
-        chalk.yellow('⚠️ Current directory is not a Git repository.'),
-      );
+      console.log(chalk.yellow('Current directory is not a Git repository.'));
       return null;
     }
 

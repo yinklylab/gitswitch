@@ -30,7 +30,7 @@ export class GithubService {
     if (!token) {
       console.log(
         chalk.yellow(
-          '⚠️ No GitHub token provided. Checking if username exists...',
+          'No GitHub token provided. Checking if username exists...',
         ),
       );
       try {
@@ -97,7 +97,7 @@ export class GithubService {
         const errorMessage = (error as Error)?.message || String(error);
 
         console.error(
-          chalk.red(`⚠️ Error verifying GitHub account:`),
+          chalk.red(`Error verifying GitHub account:`),
           errorMessage,
         );
 
@@ -122,7 +122,7 @@ export class GithubService {
       const { login: authenticatedUser } = response.data || {};
       if (!authenticatedUser) {
         console.error(
-          chalk.red('⚠️ Received unexpected response from GitHub API /user.'),
+          chalk.red('Received unexpected response from GitHub API /user.'),
         );
         return { valid: false, reason: 'api_error', hasToken: true };
       }
@@ -287,7 +287,7 @@ export class GithubService {
       return keys.some((k) => k.key.trim() === publicKey.trim());
     } catch (err) {
       console.error(
-        chalk.red('⚠️ Could not verify SSH key on GitHub:'),
+        chalk.red('Could not verify SSH key on GitHub:'),
         err.response?.data || err.message,
       );
       return false;

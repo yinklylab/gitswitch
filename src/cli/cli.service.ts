@@ -319,10 +319,7 @@ export class CliService {
     try {
       publicKey = fs.readFileSync(publicKeyPath, 'utf8').trim();
     } catch (err: any) {
-      console.error(
-        chalk.red('⚠️ Could not read public key file:'),
-        err.message,
-      );
+      console.error(chalk.red('Could not read public key file:'), err.message);
 
       return;
     }
