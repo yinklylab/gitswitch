@@ -15,6 +15,125 @@ Set up your GitHub identities once. Use them across your repositories.
 
 ---
 
+# Installation
+
+Install globally with npm:
+
+```bash
+npm install -g @yinklylab.dev/gitswitch
+```
+
+Or with Yarn:
+
+```bash
+yarn global add @yinklylab.dev/gitswitch
+```
+
+Verify the installation:
+
+```bash
+gitswitch -v
+```
+
+---
+
+# Quick Start
+
+## 1. Connect your work GitHub account
+
+```bash
+gitswitch setup
+```
+
+Example:
+
+```text
+Welcome to GitSwitch
+
+? Profile name:
+> work
+
+Connect your GitHub account...
+
+Enter code: ABCD-1234
+
+Opening GitHub in your browser...
+
+Waiting for GitHub authorization...
+```
+
+After authorization:
+
+```text
+✓ GitHub authentication successful
+✓ Connected to GitHub as company-user
+✓ SSH key generated
+✓ SSH identity configured
+✓ SSH key uploaded to GitHub
+✓ SSH connection verified
+
+GitSwitch setup complete
+```
+
+---
+
+## 2. Connect another account
+
+Run:
+
+```bash
+gitswitch setup
+```
+
+Create a second profile:
+
+```text
+Profile:
+> personal
+
+GitHub:
+<https://github.com/yinklylab>
+
+✓ Personal profile configured
+```
+
+---
+
+## 3. View your profiles
+
+```bash
+gitswitch list
+```
+
+---
+
+## 4. Clone a repository
+
+```bash
+gitswitch clone work https://github.com/company/api.git
+```
+
+---
+
+## 5. Work normally
+
+```bash
+cd api
+
+git add .
+git commit -m "feat: add API"
+```
+
+---
+
+## 6. Push with the selected identity
+
+```bash
+gitswitch push work
+```
+
+---
+
 ## ✨ Why GitSwitch?
 
 Managing multiple GitHub accounts is possible with Git, SSH, and GitHub's existing tools.
@@ -341,124 +460,7 @@ GitSwitch Doctor verifies the SSH aliases created by GitSwitch instead of checki
 
 ---
 
-# Installation
 
-Install globally with npm:
-
-```bash
-npm install -g @yinklylab.dev/gitswitch
-```
-
-Or with Yarn:
-
-```bash
-yarn global add @yinklylab.dev/gitswitch
-```
-
-Verify the installation:
-
-```bash
-gitswitch -v
-```
-
----
-
-# Quick Start
-
-## 1. Connect your work GitHub account
-
-```bash
-gitswitch setup
-```
-
-Example:
-
-```text
-Welcome to GitSwitch
-
-? Profile name:
-> work
-
-Connect your GitHub account...
-
-Enter code: ABCD-1234
-
-Opening GitHub in your browser...
-
-Waiting for GitHub authorization...
-```
-
-After authorization:
-
-```text
-✓ GitHub authentication successful
-✓ Connected to GitHub as company-user
-✓ SSH key generated
-✓ SSH identity configured
-✓ SSH key uploaded to GitHub
-✓ SSH connection verified
-
-GitSwitch setup complete
-```
-
----
-
-## 2. Connect another account
-
-Run:
-
-```bash
-gitswitch setup
-```
-
-Create a second profile:
-
-```text
-Profile:
-> personal
-
-GitHub:
-<https://github.com/yinklylab>
-
-✓ Personal profile configured
-```
-
----
-
-## 3. View your profiles
-
-```bash
-gitswitch list
-```
-
----
-
-## 4. Clone a repository
-
-```bash
-gitswitch clone work https://github.com/company/api.git
-```
-
----
-
-## 5. Work normally
-
-```bash
-cd api
-
-git add .
-git commit -m "feat: add API"
-```
-
----
-
-## 6. Push with the selected identity
-
-```bash
-gitswitch push work
-```
-
----
 
 # Manual Setup
 
